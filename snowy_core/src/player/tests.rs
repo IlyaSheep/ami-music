@@ -1,8 +1,6 @@
 use std::path::Path;
 
-use mpris_server::PlaybackStatus;
-
-use crate::player::Playback;
+use crate::player::{Playback, playback_status::PlaybackStatus};
 
 #[test]
 fn new() {

@@ -1787,6 +1787,7 @@ dependencies = [
  "lofty",
  "mpris-server",
  "rodio",
+ "serde",
  "tokio",
 ]
 

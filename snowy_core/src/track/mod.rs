@@ -1,3 +1,4 @@
+pub mod metadata;
 pub mod properties;
 
 use std::path::{Path, PathBuf};
@@ -9,9 +10,8 @@ use lofty::{
     probe::Probe,
     tag::Accessor,
 };
-use mpris_server::{Metadata, Time};
 
-use crate::track::properties::Properties;
+use crate::track::{metadata::Metadata, properties::Properties};
 
 /// Stores necessary information about a track.
 pub struct Track {
@@ -36,16 +36,14 @@ impl Track {
 
     /// Parses metadata from TaggedFile to Metadata type that comes with mpris-server crate.
     fn parse_metadata(tagged_file: &TaggedFile) -> Result<Metadata> {
-        let mut metadata = Metadata::new();
-        metadata.set_length(Some(Time::from_micros(
-            tagged_file.properties().duration().as_micros() as i64,
-        )));
+        let mut metadata = Metadata::default();
+        metadata.length = tagged_file.properties().duration().as_micros();
         if let Some(primary_tag) = tagged_file.primary_tag() {
-            metadata.set_album(primary_tag.album().as_deref());
-            metadata.set_title(primary_tag.title().as_deref());
-            metadata.set_artist(primary_tag.artist().as_deref().map(|s| vec![s]));
-            metadata.set_disc_number(primary_tag.track().map(|i| i as i32));
-            metadata.set_genre(primary_tag.genre().as_deref().map(|s| vec![s]));
+            metadata.album = primary_tag.album().map(|s| s.into_owned());
+            metadata.title = primary_tag.title().map(|s| s.into_owned());
+            metadata.artist = primary_tag.artist().map(|s| s.into_owned());
+            metadata.disc_number = primary_tag.track();
+            metadata.genre = primary_tag.genre().map(|s| s.into_owned());
         }
 
         Ok(metadata)

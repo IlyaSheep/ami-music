@@ -1,13 +1,15 @@
 use std::{fs::File, path::Path};
 
 use anyhow::Result;
-use mpris_server::{PlaybackRate, PlaybackStatus, Volume};
 use rodio::{Decoder, MixerDeviceSink, Player};
+
+use crate::player::playback_status::PlaybackStatus;
 
 #[cfg(test)]
 pub mod tests;
 
 pub mod mpris;
+pub mod playback_status;
 
 /// Performs player-related functionalities.
 pub struct Playback {
@@ -49,16 +51,16 @@ impl Playback {
     }
 
     /// Returns f64 as volume
-    pub fn volume(&self) -> Volume {
-        self.player.volume() as Volume
+    pub fn volume(&self) -> f32 {
+        self.player.volume()
     }
 
-    pub fn set_volume(&self, value: Volume) {
-        self.player.set_volume(value as f32);
+    pub fn set_volume(&self, value: f32) {
+        self.player.set_volume(value);
     }
 
-    pub fn playback_rate(&self) -> PlaybackRate {
-        self.player.speed() as PlaybackRate
+    pub fn playback_speed(&self) -> f32 {
+        self.player.speed()
     }
 
     pub fn playback_status(&self) -> PlaybackStatus {
