@@ -1,3 +1,4 @@
+pub mod config;
 pub mod library;
 pub mod orchestrator;
 pub mod player;
