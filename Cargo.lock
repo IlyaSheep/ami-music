@@ -1800,6 +1800,7 @@ dependencies = [
  "log",
  "mpris-server",
  "serde",
+ "serde_json",
  "snowy_core",
  "tokio",
  "tokio-tungstenite",

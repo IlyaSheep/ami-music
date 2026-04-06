@@ -3,9 +3,11 @@ use std::{net::SocketAddr, sync::Arc};
 use futures_util::{SinkExt, StreamExt};
 use tokio::{
     net::{TcpListener, TcpStream},
-    sync::broadcast,
+    sync::{Mutex, broadcast},
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
+
+use crate::{commands::Command, states::AppState};
 
 pub mod commands;
 pub mod states;
@@ -15,6 +17,7 @@ const CHANNEL_CAPACITY: usize = 32;
 
 #[tokio::main]
 async fn main() {
+    let state = Arc::new(Mutex::new(AppState::default()));
     let addr = "127.0.0.1:8080";
     let listener = TcpListener::bind(addr).await.unwrap();
     println!("Server listening on {addr}");
@@ -28,7 +31,7 @@ async fn main() {
         let tx = Arc::clone(&tx);
 
         // Spawn a new async task for each client — they run concurrently
-        tokio::spawn(handle_connection(stream, peer, tx));
+        tokio::spawn(handle_connection(stream, peer, tx, state.clone()));
     }
 }
 
@@ -36,6 +39,7 @@ async fn handle_connection(
     stream: TcpStream,
     peer: SocketAddr,
     tx: Arc<broadcast::Sender<String>>,
+    state: Arc<Mutex<AppState>>,
 ) {
     println!("{peer} connected");
 
@@ -54,18 +58,13 @@ async fn handle_connection(
             msg = ws_stream.next() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
-                        let text = match text.as_str() {
-                            "cat" => {
-                                "Meow!"
-                            },
-                            _ => {
-                                &format!("{peer}: {text}")
-                            }
-                        };
-
-                            println!("{text}");
-                            let _ = tx.send(format!("{text}"));
-                    }
+                        if let Ok(cmd) = serde_json::from_str::<Command>(&text) {
+                        let mut state = state.lock().await;
+                        // Mutate state based on command
+                        match cmd {
+                            _ => todo!()
+                        }
+                    }}
                     // Client disconnected or error
                     _ => break,
                 }
