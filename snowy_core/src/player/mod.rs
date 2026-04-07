@@ -14,7 +14,7 @@ pub mod playback_status;
 /// Performs player-related functionalities.
 pub struct Playback {
     player: Player,
-    sink: MixerDeviceSink,
+    _sink: MixerDeviceSink,
 }
 
 impl Playback {
@@ -22,7 +22,7 @@ impl Playback {
         let sink = rodio::DeviceSinkBuilder::open_default_sink()?;
         Ok(Playback {
             player: rodio::Player::connect_new(sink.mixer()),
-            sink,
+            _sink: sink,
         })
     }
 

@@ -9,7 +9,11 @@ use tokio::{
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
-use crate::{commands::Command, events::ServerEvent, states::AppState};
+use crate::{
+    commands::{Command, LibraryCommand},
+    events::ServerEvent,
+    states::AppState,
+};
 
 pub mod commands;
 pub mod events;
@@ -68,7 +72,7 @@ async fn handle_connection(
                         let mut state = state.lock().await;
                         // Mutate state based on command
                         match cmd {
-                            Command::GetLibrary => {
+                            Command::(LibraryCommand::Fetch) => {
                                 let event = ServerEvent::Library(state.library.tracks.clone());
                                 let json = serde_json::to_string(&event).unwrap();
                                 let _ = tx.send(json);

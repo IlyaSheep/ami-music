@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use snowy_core::{library::Library, orchestrator::Orchestrator, queue::Queue};
+use snowy_core::{library::Library, orchestrator::Orchestrator};
 use tokio::sync::Mutex;
 
 pub struct AppState {
