@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, sync::Arc};
 
 use crate::track::Track;
 
@@ -8,9 +8,9 @@ pub mod tests;
 /// Struct to act as a queue of tracks.
 #[derive(Default)]
 pub struct Queue {
-    current_track: Option<Track>,
-    previous_tracks: Vec<Track>,
-    next_tracks: VecDeque<Track>,
+    current_track: Option<Arc<Track>>,
+    previous_tracks: Vec<Arc<Track>>,
+    next_tracks: VecDeque<Arc<Track>>,
 }
 
 impl Queue {
@@ -47,12 +47,12 @@ impl Queue {
     }
 
     /// Enqueue a new track to the next-track queue.
-    pub fn enqueue(&mut self, track: Track) {
+    pub fn enqueue(&mut self, track: Arc<Track>) {
         self.next_tracks.push_back(track);
     }
 
     /// Push-front a new track to the next-track queue.
-    pub fn prepend_queue(&mut self, track: Track) {
+    pub fn prepend_queue(&mut self, track: Arc<Track>) {
         self.next_tracks.push_front(track);
     }
 }
