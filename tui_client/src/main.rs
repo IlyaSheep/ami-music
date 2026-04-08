@@ -1,5 +1,5 @@
 use futures_util::{SinkExt, StreamExt};
-use snowy_daemon::commands::Command;
+use snowy_daemon::commands::{Command, LibraryCommand};
 use snowy_daemon::events::ServerEvent;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio_tungstenite::connect_async;
@@ -16,7 +16,7 @@ async fn main() {
     // Read lines from stdin in a background task
     let mut stdin = BufReader::new(tokio::io::stdin()).lines();
 
-    let json = serde_json::to_string(&Command::GetLibrary).unwrap();
+    let json = serde_json::to_string(&Command::Library(LibraryCommand::Fetch)).unwrap();
     ws_sink.send(Message::Text(json.into())).await.unwrap();
 
     loop {

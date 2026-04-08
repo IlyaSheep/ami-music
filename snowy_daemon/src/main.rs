@@ -3,17 +3,12 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use snowy_core::config::Config;
+use snowy_daemon::{commands::Command, handler::handle_command, states::AppState};
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::{Mutex, broadcast},
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
-
-use crate::{
-    commands::{Command, LibraryCommand},
-    events::ServerEvent,
-    states::AppState,
-};
 
 pub mod commands;
 pub mod events;
@@ -69,16 +64,9 @@ async fn handle_connection(
                 match msg {
                     Some(Ok(Message::Text(text))) => {
                         if let Ok(cmd) = serde_json::from_str::<Command>(&text) {
-                        let mut state = state.lock().await;
-                        // Mutate state based on command
-                        match cmd {
-                            Command::(LibraryCommand::Fetch) => {
-                                let event = ServerEvent::Library(state.library.tracks.clone());
-                                let json = serde_json::to_string(&event).unwrap();
-                                let _ = tx.send(json);
-                            },
-                            _ => todo!()
-                        }
+                            let mut state = state.lock().await;
+                            // Mutate state based on command
+                            handle_command(cmd, &mut state);
                     }}
                     // Client disconnected or error
                     _ => break,

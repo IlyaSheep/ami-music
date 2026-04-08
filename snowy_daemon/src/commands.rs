@@ -2,15 +2,14 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(tag = "cmd")]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum Command {
     Queue(QueueCommand),
     Playback(PlaybackCommand),
     Library(LibraryCommand),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum PlaybackCommand {
     Play,
     Pause,
@@ -24,7 +23,7 @@ pub enum PlaybackCommand {
     // SetLoop,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum QueueCommand {
     Enqueue { track_id: u64 },
     Prepend { track_id: u64 },
@@ -35,7 +34,7 @@ pub enum QueueCommand {
     Clear,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 pub enum LibraryCommand {
     Fetch,
 }
