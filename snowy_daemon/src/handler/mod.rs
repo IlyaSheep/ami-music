@@ -66,6 +66,11 @@ pub async fn handle_playback_command(
         }
     };
 
+    let event =
+        ServerEvent::SendPlayerSnapshot(state.orchestrator.lock().await.playback.get_snapshot());
+    let json = serde_json::to_string(&event)?;
+    let _ = tx.send(json);
+
     Ok(())
 }
 

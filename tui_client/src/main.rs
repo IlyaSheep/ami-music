@@ -41,6 +41,7 @@ async fn main() {
                         match event {
                             ServerEvent::SendLibrary(tracks) => println!("{tracks:#?}"),
                             ServerEvent::SendQueue(queue) => println!("{queue:#?}"),
+                            _ => todo!(),
                         }}
                     },
                     _ => break,
