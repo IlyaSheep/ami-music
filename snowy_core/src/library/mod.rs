@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::read_dir, sync::Arc};
+use std::{collections::HashMap, fs::read_dir, str::FromStr, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +16,17 @@ impl TrackId {
 
     pub fn decrement(&mut self) {
         self.0 -= 1;
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseTrackIdError;
+
+impl FromStr for TrackId {
+    type Err = ParseTrackIdError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(TrackId(s.parse::<u64>().map_err(|_| ParseTrackIdError)?))
     }
 }
 
