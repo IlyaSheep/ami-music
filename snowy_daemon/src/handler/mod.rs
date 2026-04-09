@@ -4,7 +4,7 @@ use tokio::sync::broadcast;
 use crate::{
     commands::{Command, LibraryCommand, PlaybackCommand, QueueCommand},
     events::ServerEvent,
-    handler::queue::enqueue,
+    handler::queue::{clear, dequeue, enqueue, next, prepend, prev, shuffle},
     states::AppState,
 };
 
@@ -75,13 +75,13 @@ pub async fn handle_queue_command(
     tx: &broadcast::Sender<String>,
 ) -> Result<()> {
     match command {
-        QueueCommand::Enqueue { track_id } => enqueue(track_id, state),
-        QueueCommand::Prepend { .. } => todo!(),
-        QueueCommand::Dequeue { .. } => todo!(),
-        QueueCommand::Next => todo!(),
-        QueueCommand::Prev => todo!(),
-        QueueCommand::Shuffle => todo!(),
-        QueueCommand::Clear => todo!(),
+        QueueCommand::Enqueue { track_id } => enqueue(track_id, state).await,
+        QueueCommand::Prepend { track_id } => prepend(track_id, state).await,
+        QueueCommand::Dequeue { index } => dequeue(index, state).await,
+        QueueCommand::Next => next(state).await,
+        QueueCommand::Prev => prev(state).await,
+        QueueCommand::Shuffle => shuffle(state).await,
+        QueueCommand::Clear => clear(state).await,
     };
 
     Ok(())

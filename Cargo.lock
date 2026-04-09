@@ -1854,6 +1854,7 @@ dependencies = [
  "dirs",
  "lofty",
  "mpris-server",
+ "rand 0.10.0",
  "rodio",
  "serde",
  "tokio",

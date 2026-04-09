@@ -28,7 +28,7 @@ pub enum PlaybackCommand {
 pub enum QueueCommand {
     Enqueue { track_id: TrackId },
     Prepend { track_id: TrackId },
-    Dequeue { position: usize, track_id: TrackId },
+    Dequeue { index: usize },
     Next,
     Prev,
     Shuffle,
