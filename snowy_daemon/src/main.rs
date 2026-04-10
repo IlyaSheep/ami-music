@@ -3,7 +3,9 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use snowy_core::config::Config;
-use snowy_daemon::{commands::Command, handler::handle_command, states::AppState};
+use snowy_daemon::{
+    commands::Command, handler::handle_command, internal_events::InternalEvent, states::AppState,
+};
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::{Mutex, broadcast},
@@ -15,7 +17,11 @@ const CHANNEL_CAPACITY: usize = 32;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let state = Arc::new(Mutex::new(AppState::new()?));
+    let (internal_event_tx, internal_event_rx) =
+        broadcast::channel::<InternalEvent>(CHANNEL_CAPACITY);
+    let internal_event_rx = Arc::new(internal_event_rx);
+
+    let state = Arc::new(Mutex::new(AppState::new(internal_event_tx)?));
     let config = Config::load()?;
     state.lock().await.library.load(config.library);
 
@@ -24,22 +30,30 @@ async fn main() -> Result<()> {
     println!("Server listening on {addr}");
 
     // A broadcast channel: one sender, many receivers (one per client)
-    let (tx, _rx) = broadcast::channel::<String>(CHANNEL_CAPACITY);
-    let tx = Arc::new(tx); // Share the sender across tasks
+    let (connection_tx, _) = broadcast::channel::<String>(CHANNEL_CAPACITY);
+    let connection_tx = Arc::new(connection_tx); // Share the sender across tasks
 
     loop {
         let (stream, peer) = listener.accept().await.unwrap();
-        let tx = Arc::clone(&tx);
+        let connection_tx = Arc::clone(&connection_tx);
+        let internal_event_rx = Arc::clone(&internal_event_rx);
 
         // Spawn a new async task for each client — they run concurrently
-        tokio::spawn(handle_connection(stream, peer, tx, state.clone()));
+        tokio::spawn(handle_connection(
+            stream,
+            peer,
+            connection_tx,
+            internal_event_rx,
+            state.clone(),
+        ));
     }
 }
 
 async fn handle_connection(
     stream: TcpStream,
     peer: SocketAddr,
-    tx: Arc<broadcast::Sender<String>>,
+    connection_tx: Arc<broadcast::Sender<String>>,
+    internal_event_rx: Arc<broadcast::Receiver<InternalEvent>>,
     state: Arc<Mutex<AppState>>,
 ) -> Result<()> {
     println!("{peer} connected");
@@ -51,7 +65,7 @@ async fn handle_connection(
     let (mut ws_sink, mut ws_stream) = ws.split();
 
     // Subscribe to the broadcast channel to receive messages from other clients
-    let mut rx = tx.subscribe();
+    let mut connection_rx = connection_tx.subscribe();
 
     loop {
         tokio::select! {
@@ -62,7 +76,7 @@ async fn handle_connection(
                         if let Ok(cmd) = serde_json::from_str::<Command>(&text) {
                             let mut state = state.lock().await;
                             // Handle commands. Mutate state and send messages to the local broadcast channel if needed.
-                            handle_command(cmd, &mut state, &tx).await?;
+                            handle_command(cmd, &mut state, &connection_tx).await?;
                     }}
                     // Client disconnected or error
                     _ => break,
@@ -70,10 +84,14 @@ async fn handle_connection(
             }
 
             // Send messages accumulated in the local broadcast channel to all clients.
-            broadcast = rx.recv() => {
+            broadcast = connection_rx.recv() => {
                 if let Ok(text) = broadcast {
                     let _ = ws_sink.send(Message::Text(text.into())).await;
                 }
+            }
+
+            internal_event = internal_event_rx.recv() => {
+                
             }
         }
     }

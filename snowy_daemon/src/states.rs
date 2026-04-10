@@ -3,7 +3,9 @@ use std::sync::Arc;
 use anyhow::Result;
 use snowy_core::library::Library;
 use tokio::sync::Mutex;
+use tokio::sync::broadcast;
 
+use crate::internal_events::InternalEvent;
 use crate::orchestrator::Orchestrator;
 
 pub struct AppState {
@@ -12,9 +14,9 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Result<Self> {
+    pub fn new(internal_event_tx: broadcast::Sender<InternalEvent>) -> Result<Self> {
         Ok(AppState {
-            orchestrator: Arc::new(Mutex::new(Orchestrator::new()?)),
+            orchestrator: Arc::new(Mutex::new(Orchestrator::new(internal_event_tx)?)),
             library: Library::default(),
         })
     }
