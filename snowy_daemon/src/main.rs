@@ -4,7 +4,11 @@ use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use snowy_core::config::Config;
 use snowy_daemon::{
-    commands::Command, handler::handle_command, internal_events::InternalEvent, states::AppState,
+    commands::Command,
+    handler::handle_command,
+    internal_events::{InternalEvent, handle_internal_event},
+    orchestrator::Orchestrator,
+    states::AppState,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -17,13 +21,27 @@ const CHANNEL_CAPACITY: usize = 32;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let (internal_event_tx, internal_event_rx) =
-        broadcast::channel::<InternalEvent>(CHANNEL_CAPACITY);
-    let internal_event_rx = Arc::new(internal_event_rx);
+    let (internal_event_tx, _) = broadcast::channel::<InternalEvent>(CHANNEL_CAPACITY);
+    let internal_event_tx = Arc::new(internal_event_tx);
 
-    let state = Arc::new(Mutex::new(AppState::new(internal_event_tx)?));
+    let state = Arc::new(Mutex::new(AppState::new(internal_event_tx.clone())?));
     let config = Config::load()?;
     state.lock().await.library.load(config.library);
+
+    let player = state
+        .lock()
+        .await
+        .orchestrator
+        .lock()
+        .await
+        .playback
+        .player
+        .clone();
+
+    tokio::spawn(Orchestrator::watch_track_end(
+        player,
+        internal_event_tx.clone(),
+    ));
 
     let addr = "127.0.0.1:8080";
     let listener = TcpListener::bind(addr).await.unwrap();
@@ -36,7 +54,7 @@ async fn main() -> Result<()> {
     loop {
         let (stream, peer) = listener.accept().await.unwrap();
         let connection_tx = Arc::clone(&connection_tx);
-        let internal_event_rx = Arc::clone(&internal_event_rx);
+        let internal_event_rx = Arc::clone(&internal_event_tx);
 
         // Spawn a new async task for each client — they run concurrently
         tokio::spawn(handle_connection(
@@ -53,7 +71,7 @@ async fn handle_connection(
     stream: TcpStream,
     peer: SocketAddr,
     connection_tx: Arc<broadcast::Sender<String>>,
-    internal_event_rx: Arc<broadcast::Receiver<InternalEvent>>,
+    internal_event_tx: Arc<broadcast::Sender<InternalEvent>>,
     state: Arc<Mutex<AppState>>,
 ) -> Result<()> {
     println!("{peer} connected");
@@ -66,6 +84,7 @@ async fn handle_connection(
 
     // Subscribe to the broadcast channel to receive messages from other clients
     let mut connection_rx = connection_tx.subscribe();
+    let mut internal_event_rx = internal_event_tx.subscribe();
 
     loop {
         tokio::select! {
@@ -91,7 +110,10 @@ async fn handle_connection(
             }
 
             internal_event = internal_event_rx.recv() => {
-                
+                if let Ok(event) = internal_event {
+                    let mut state = state.lock().await;
+                    handle_internal_event(event, &mut state, &connection_tx).await?;
+                }
             }
         }
     }

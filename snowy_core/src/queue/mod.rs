@@ -74,4 +74,8 @@ impl Queue {
         self.previous_tracks.clear();
         self.next_tracks.clear();
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.next_tracks.is_empty()
+    }
 }

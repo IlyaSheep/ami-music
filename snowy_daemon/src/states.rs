@@ -14,7 +14,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(internal_event_tx: broadcast::Sender<InternalEvent>) -> Result<Self> {
+    pub fn new(internal_event_tx: Arc<broadcast::Sender<InternalEvent>>) -> Result<Self> {
         Ok(AppState {
             orchestrator: Arc::new(Mutex::new(Orchestrator::new(internal_event_tx)?)),
             library: Library::default(),

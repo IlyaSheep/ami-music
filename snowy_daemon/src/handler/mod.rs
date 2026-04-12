@@ -13,12 +13,12 @@ pub mod queue;
 pub async fn handle_command(
     command: Command,
     state: &mut AppState,
-    tx: &broadcast::Sender<String>,
+    connection_tx: &broadcast::Sender<String>,
 ) -> Result<()> {
     match command {
-        Command::Playback(cmd) => handle_playback_command(cmd, state, tx).await,
-        Command::Queue(cmd) => handle_queue_command(cmd, state, tx).await,
-        Command::Library(cmd) => handle_library_command(cmd, state, tx).await,
+        Command::Playback(cmd) => handle_playback_command(cmd, state, connection_tx).await,
+        Command::Queue(cmd) => handle_queue_command(cmd, state, connection_tx).await,
+        Command::Library(cmd) => handle_library_command(cmd, state, connection_tx).await,
     }
 }
 

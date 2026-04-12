@@ -1,4 +1,4 @@
-use std::{fs::File, path::Path, time::Duration};
+use std::{fs::File, path::Path, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use rodio::{Decoder, MixerDeviceSink, Player};
@@ -14,7 +14,7 @@ pub mod playback_status;
 
 /// Performs player-related functionalities.
 pub struct Playback {
-    pub player: Player,
+    pub player: Arc<Player>,
     _sink: MixerDeviceSink,
 }
 
@@ -22,7 +22,7 @@ impl Playback {
     pub fn new() -> Result<Self> {
         let sink = rodio::DeviceSinkBuilder::open_default_sink()?;
         Ok(Playback {
-            player: rodio::Player::connect_new(sink.mixer()),
+            player: Arc::new(rodio::Player::connect_new(sink.mixer())),
             _sink: sink,
         })
     }
