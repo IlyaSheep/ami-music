@@ -69,6 +69,7 @@ pub async fn handle_queue_command(
         QueueCommand::Prev => prev(state).await,
         QueueCommand::Shuffle => shuffle(state).await,
         QueueCommand::Clear => clear(state).await,
+        QueueCommand::Fetch => {}
     };
 
     let event = ServerEvent::SendQueue(state.orchestrator.queue.clone());

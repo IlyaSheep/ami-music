@@ -33,6 +33,7 @@ pub enum QueueCommand {
     Prev,
     Shuffle,
     Clear,
+    Fetch,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
