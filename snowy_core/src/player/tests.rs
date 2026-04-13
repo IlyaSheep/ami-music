@@ -13,22 +13,24 @@ fn stopped() {
     assert_eq!(player.playback_status(), PlaybackStatus::Stopped);
 }
 
-#[test]
-fn play() {
+#[tokio::test]
+async fn play() {
     let player = Playback::new().unwrap();
     player
         .load_track(Path::new("../test_assets/test.flac"))
+        .await
         .unwrap();
-    player.play();
+    player.play().await;
     assert_eq!(player.playback_status(), PlaybackStatus::Playing);
 }
 
-#[test]
-fn pause() {
+#[tokio::test]
+async fn pause() {
     let player = Playback::new().unwrap();
     player
         .load_track(Path::new("../test_assets/test.flac"))
+        .await
         .unwrap();
-    player.pause();
+    player.pause().await;
     assert_eq!(player.playback_status(), PlaybackStatus::Paused);
 }

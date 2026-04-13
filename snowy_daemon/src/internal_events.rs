@@ -18,10 +18,14 @@ pub async fn handle_internal_event(
             if !state.orchestrator.queue.is_empty() {
                 state.orchestrator.queue.next();
                 if let Some(current) = state.orchestrator.queue.current_track.clone() {
-                    state.orchestrator.playback.load_track(&current.pathbuf)?;
+                    state
+                        .orchestrator
+                        .playback
+                        .load_track(&current.pathbuf)
+                        .await?;
                 }
             } else {
-                state.orchestrator.playback.pause();
+                state.orchestrator.playback.on_exhaustion().await;
             }
         }
     }

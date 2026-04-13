@@ -28,9 +28,9 @@ pub async fn handle_playback_command(
     tx: &broadcast::Sender<String>,
 ) -> Result<()> {
     match command {
-        PlaybackCommand::Play => state.orchestrator.playback.play(),
+        PlaybackCommand::Play => state.orchestrator.playback.play().await,
 
-        PlaybackCommand::Pause => state.orchestrator.playback.pause(),
+        PlaybackCommand::Pause => state.orchestrator.playback.pause().await,
 
         PlaybackCommand::TogglePlay => state.orchestrator.playback.toggle_play(),
 

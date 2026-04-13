@@ -2,13 +2,17 @@ use std::{fs::File, path::Path, sync::Arc, time::Duration};
 
 use anyhow::Result;
 use rodio::{Decoder, MixerDeviceSink, Player};
+use tokio::sync::Mutex;
 
-use crate::player::{playback_snapshot::PlayerSnapshot, playback_status::PlaybackStatus};
+use crate::player::{
+    pause_reason::PauseReason, playback_snapshot::PlayerSnapshot, playback_status::PlaybackStatus,
+};
 
 #[cfg(test)]
 pub mod tests;
 
 pub mod mpris;
+pub mod pause_reason;
 pub mod playback_snapshot;
 pub mod playback_status;
 
@@ -16,6 +20,7 @@ pub mod playback_status;
 pub struct Playback {
     pub player: Arc<Player>,
     _sink: MixerDeviceSink,
+    pub pause_reason: Mutex<PauseReason>,
 }
 
 impl Playback {
@@ -24,22 +29,33 @@ impl Playback {
         Ok(Playback {
             player: Arc::new(rodio::Player::connect_new(sink.mixer())),
             _sink: sink,
+            pause_reason: Mutex::new(PauseReason::default()),
         })
     }
 
     /// Append audio source from path to the sink.
-    pub fn load_track(&self, audio_path: &Path) -> Result<()> {
+    pub async fn load_track(&self, audio_path: &Path) -> Result<()> {
         let source = Decoder::try_from(File::open(audio_path)?)?;
         self.player.append(source);
+        if *self.pause_reason.lock().await == PauseReason::Exhaustion {
+            self.play().await;
+        }
 
         Ok(())
     }
 
-    pub fn play(&self) {
+    pub async fn play(&self) {
+        *self.pause_reason.lock().await = PauseReason::None;
         self.player.play();
     }
 
-    pub fn pause(&self) {
+    pub async fn pause(&self) {
+        *self.pause_reason.lock().await = PauseReason::User;
+        self.player.pause();
+    }
+
+    pub async fn on_exhaustion(&self) {
+        *self.pause_reason.lock().await = PauseReason::Exhaustion;
         self.player.pause();
     }
 
