@@ -27,6 +27,7 @@ impl Queue {
                 self.previous_tracks.push(curr);
             }
             self.current_track = Some(next);
+            log::debug!("Skipped to next track");
             true
         } else {
             false
@@ -43,6 +44,7 @@ impl Queue {
                 self.next_tracks.push_front(curr);
             }
             self.current_track = Some(prev);
+            log::debug!("Skipped to previous track");
             true
         } else {
             false
@@ -51,15 +53,18 @@ impl Queue {
 
     /// Enqueue a new track to the next-track queue.
     pub fn enqueue(&mut self, track: Arc<Track>) {
+        log::debug!("Enqueuing {:?}", track.pathbuf);
         self.next_tracks.push_back(track);
     }
 
     /// Push-front a new track to the next-track queue.
     pub fn prepend_queue(&mut self, track: Arc<Track>) {
+        log::debug!("Prepending {:?}", track.pathbuf);
         self.next_tracks.push_front(track);
     }
 
     pub fn dequeue(&mut self, index: usize) -> Option<Arc<Track>> {
+        log::debug!("Removing index {index}");
         self.next_tracks.remove(index)
     }
 
@@ -68,11 +73,14 @@ impl Queue {
         let mut vec: Vec<Arc<Track>> = self.next_tracks.clone().into_iter().collect();
         vec.shuffle(&mut rng);
         self.next_tracks = vec.into_iter().collect();
+        log::debug!("Shuffled queue");
     }
 
     pub fn clear(&mut self) {
         self.previous_tracks.clear();
         self.next_tracks.clear();
+
+        log::debug!("Cleared queue");
     }
 
     pub fn is_empty(&self) -> bool {
