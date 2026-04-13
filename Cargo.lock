@@ -1892,6 +1892,7 @@ dependencies = [
  "anyhow",
  "dirs",
  "lofty",
+ "log",
  "mpris-server",
  "rand 0.10.0",
  "rodio",

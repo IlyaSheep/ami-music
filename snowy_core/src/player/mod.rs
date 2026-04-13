@@ -35,6 +35,7 @@ impl Playback {
 
     /// Append audio source from path to the sink.
     pub async fn load_track(&self, audio_path: &Path) -> Result<()> {
+        log::debug!("Opening {audio_path:?}.");
         let source = Decoder::try_from(File::open(audio_path)?)?;
         self.player.append(source);
         if *self.pause_reason.lock().await == PauseReason::Exhaustion {
@@ -46,16 +47,19 @@ impl Playback {
 
     pub async fn play(&self) {
         *self.pause_reason.lock().await = PauseReason::None;
+        log::debug!("Set pause_reason to {:?}.", *self.pause_reason.lock().await);
         self.player.play();
     }
 
     pub async fn pause(&self) {
         *self.pause_reason.lock().await = PauseReason::User;
+        log::debug!("Set pause_reason to {:?}.", *self.pause_reason.lock().await);
         self.player.pause();
     }
 
     pub async fn on_exhaustion(&self) {
         *self.pause_reason.lock().await = PauseReason::Exhaustion;
+        log::debug!("Set pause_reason to {:?}.", *self.pause_reason.lock().await);
         self.player.pause();
     }
 
