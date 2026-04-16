@@ -30,7 +30,7 @@ impl FromStr for TrackId {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Library {
     pub tracks: HashMap<TrackId, Arc<Track>>,
 }
