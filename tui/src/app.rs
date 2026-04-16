@@ -1,8 +1,14 @@
-use crate::event::{AppEvent, Event, EventHandler};
+use std::sync::Arc;
+
+use crate::{
+    event::{AppEvent, Event, EventHandler},
+    state::AppStates,
+};
+use ami_daemon::commands::Command;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
+use tokio::sync::{Mutex, mpsc::UnboundedSender};
 
-use ami_core::{library::Library, player::playback_snapshot::PlayerSnapshot, queue::Queue};
 /// Application.
 #[derive(Debug)]
 pub struct App {
@@ -13,28 +19,21 @@ pub struct App {
     /// Event handler.
     pub events: EventHandler,
 
-    pub player_snapshot: PlayerSnapshot,
-    pub queue_snapshot: Queue,
-    pub library_snapshot: Library,
-}
+    pub states: Arc<Mutex<AppStates>>,
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            running: true,
-            counter: 0,
-            events: EventHandler::new(),
-            player_snapshot: PlayerSnapshot::default(),
-            queue_snapshot: Queue::default(),
-            library_snapshot: Library::default(),
-        }
-    }
+    pub command_tx: UnboundedSender<Command>,
 }
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(states: Arc<Mutex<AppStates>>, command_tx: UnboundedSender<Command>) -> Self {
+        Self {
+            running: true,
+            counter: 0,
+            events: EventHandler::new(),
+            states,
+            command_tx,
+        }
     }
 
     /// Run the application's main loop.
