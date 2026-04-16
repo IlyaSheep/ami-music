@@ -19,6 +19,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 // How many messages the broadcast channel can buffer
 const CHANNEL_CAPACITY: usize = 32;
+const ADDR: &str = "0.0.0.0:7878";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -39,9 +40,8 @@ async fn main() -> Result<()> {
         internal_event_tx.clone(),
     ));
 
-    let addr = "127.0.0.1:8080";
-    let listener = TcpListener::bind(addr).await.unwrap();
-    println!("Server listening on {addr}");
+    let listener = TcpListener::bind(ADDR).await.unwrap();
+    println!("Server listening on {ADDR}");
 
     // A broadcast channel: one sender, many receivers (one per client)
     let (connection_tx, _) = broadcast::channel::<String>(CHANNEL_CAPACITY);
