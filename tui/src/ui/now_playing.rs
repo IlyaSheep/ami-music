@@ -34,7 +34,7 @@ impl<'a> Widget for NowPlaying<'a> {
                             Press `Esc`, `Ctrl-C` or `q` to stop running.\n\
                             Press left and right to increment and decrement the counter respectively.\n\
                         ",
-                track.metadata.title.as_ref().unwrap_or(&"No Title".into())
+                track.metadata.title
             );
 
             let paragraph = Paragraph::new(text)

@@ -29,18 +29,23 @@ impl Track {
             .read()?;
         Ok(Self {
             pathbuf: path.to_path_buf(),
-            metadata: Self::parse_metadata(&tagged_file)?,
+            metadata: Self::parse_metadata(&path, &tagged_file)?,
             properties: Self::parse_properties(&tagged_file),
         })
     }
 
     /// Parses metadata from TaggedFile to Metadata type that comes with mpris-server crate.
-    fn parse_metadata(tagged_file: &TaggedFile) -> Result<Metadata> {
+    fn parse_metadata(path: &Path, tagged_file: &TaggedFile) -> Result<Metadata> {
         let mut metadata = Metadata::default();
         metadata.length = tagged_file.properties().duration().as_micros();
         if let Some(primary_tag) = tagged_file.primary_tag() {
             metadata.album = primary_tag.album().map(|s| s.into_owned());
-            metadata.title = primary_tag.title().map(|s| s.into_owned());
+            metadata.title = primary_tag.title().map(|s| s.into_owned()).unwrap_or(
+                path.file_stem()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("Untitled")
+                    .to_string(),
+            );
             metadata.artist = primary_tag.artist().map(|s| s.into_owned());
             metadata.disc_number = primary_tag.track();
             metadata.genre = primary_tag.genre().map(|s| s.into_owned());
