@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
-use ami_core::library::Library;
+use ami_core::{library::TrackId, track::Track};
 use ami_daemon::{
     commands::{Command, LibraryCommand},
     events::ServerEvent,
@@ -82,7 +82,13 @@ async fn connect(
                             match event {
                                 ServerEvent::SendLibrary(tracks) => {
                                     let mut states = states.lock().await;
-                                    states.library_snapshot = Library { tracks };
+                                    let mut library: Vec<(TrackId, Arc<Track>)> = tracks
+                                                .iter()
+                                                .map(|(&k, v)| (k, v.clone()))
+                                                .collect();
+                                    library.sort_by(|(_, a), (_, b)| a.metadata.title.cmp(&b.metadata.title));
+
+                                    states.library_snapshot = library;
                                 },
                                 ServerEvent::SendQueue(queue) => {
                                     let mut states = states.lock().await;

@@ -6,6 +6,7 @@ use ratatui::{
 
 use crate::{app::App, ui::now_playing::NowPlaying};
 
+pub mod library;
 pub mod now_playing;
 
 impl Widget for &App {
