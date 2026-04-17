@@ -20,6 +20,7 @@ use crate::{app::App, state::AppStates};
 
 pub mod app;
 pub mod event;
+pub mod handler;
 pub mod state;
 pub mod ui;
 
