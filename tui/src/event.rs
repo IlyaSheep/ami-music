@@ -34,6 +34,8 @@ pub enum AppEvent {
     TogglePlay,
     SeekForward,
     SeekBackward,
+    CursorUp,
+    CursorDown,
     Next,
     Prev,
     Enqueue,

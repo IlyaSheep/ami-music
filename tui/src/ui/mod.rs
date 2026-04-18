@@ -1,10 +1,13 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::Widget,
+    widgets::{StatefulWidget, TableState, Widget},
 };
 
-use crate::{app::App, ui::now_playing::NowPlaying};
+use crate::{
+    app::App,
+    ui::{library::Library, now_playing::NowPlaying},
+};
 
 pub mod library;
 pub mod now_playing;
@@ -24,5 +27,8 @@ impl Widget for &App {
 
         let now_playing = NowPlaying { app: &self };
         now_playing.render(layout[0], buf);
+
+        let library = Library { app: &self };
+        library.render(layout[1], buf, &mut TableState::new());
     }
 }

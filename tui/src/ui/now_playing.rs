@@ -16,13 +16,8 @@ impl<'a> Widget for NowPlaying<'a> {
     where
         Self: Sized,
     {
-        if let Some(track) = self
-            .app
-            .states
-            .blocking_lock()
-            .queue_snapshot
-            .current_track
-            .as_ref()
+        if let Ok(states) = self.app.states.try_lock()
+            && let Some(track) = states.queue_snapshot.current_track.as_ref()
         {
             let block = Block::bordered()
                 .title("test")

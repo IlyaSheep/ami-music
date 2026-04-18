@@ -9,5 +9,5 @@ pub struct AppStates {
     pub player_snapshot: PlayerSnapshot,
     pub queue_snapshot: Queue,
     pub library_snapshot: Vec<(TrackId, Arc<Track>)>,
-    pub library_selected_index: Option<usize>,
+    pub library_selected_index: usize,
 }

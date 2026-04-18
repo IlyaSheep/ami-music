@@ -1,9 +1,15 @@
-use ami_core::library::TrackId;
-use ami_daemon::commands::{Command, QueueCommand};
-use tokio::sync::mpsc::UnboundedSender;
+use std::sync::Arc;
 
-pub fn enqueue(track_id: TrackId, command_tx: UnboundedSender<Command>) {
-    let _ = command_tx.send(Command::Queue(QueueCommand::Enqueue { track_id }));
+use ami_daemon::commands::{Command, QueueCommand};
+use tokio::sync::{Mutex, mpsc::UnboundedSender};
+
+use crate::state::AppStates;
+
+pub async fn enqueue(command_tx: UnboundedSender<Command>, states: Arc<Mutex<AppStates>>) {
+    let states = states.lock().await;
+    if let Some(track) = states.library_snapshot.get(states.library_selected_index) {
+        let _ = command_tx.send(Command::Queue(QueueCommand::Enqueue { track_id: track.0 }));
+    }
 }
 
 pub fn next(command_tx: UnboundedSender<Command>) {

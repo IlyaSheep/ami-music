@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     event::{AppEvent, Event, EventHandler},
+    handler,
     state::AppStates,
 };
 use ami_daemon::commands::Command;
@@ -48,8 +49,32 @@ impl App {
                     _ => {}
                 },
                 Event::App(app_event) => match app_event {
+                    AppEvent::CursorDown => {
+                        handler::library::select_next_track(self.states.clone()).await
+                    }
+                    AppEvent::CursorUp => {
+                        handler::library::select_prev_track(self.states.clone()).await
+                    }
+                    AppEvent::Enqueue => {
+                        handler::queue::enqueue(self.command_tx.clone(), self.states.clone()).await;
+                    }
+                    AppEvent::Next => {
+                        handler::queue::next(self.command_tx.clone());
+                    }
+                    AppEvent::Prev => {
+                        handler::queue::prev(self.command_tx.clone());
+                    }
+                    AppEvent::TogglePlay => {
+                        handler::playback::toggle_play(self.command_tx.clone());
+                    }
+                    AppEvent::SeekForward => {
+                        handler::playback::seek_forward(self.command_tx.clone());
+                    }
+                    AppEvent::SeekBackward => {
+                        handler::playback::seek_backward(self.command_tx.clone());
+                    }
+
                     AppEvent::Quit => self.quit(),
-                    _ => {}
                 },
             }
         }
@@ -67,6 +92,8 @@ impl App {
             KeyCode::Char(' ') => self.events.send(AppEvent::TogglePlay),
             KeyCode::Char('s') => self.events.send(AppEvent::Next),
             KeyCode::Char('p') => self.events.send(AppEvent::Prev),
+            KeyCode::Up => self.events.send(AppEvent::CursorUp),
+            KeyCode::Down => self.events.send(AppEvent::CursorDown),
             KeyCode::Right => self.events.send(AppEvent::SeekForward),
             KeyCode::Left => self.events.send(AppEvent::SeekBackward),
             // Other handlers you could add here.
