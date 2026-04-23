@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::cache::get_thumbnail_cache_path;
 
-const THUMB_SIZE: u32 = 256;
+const THUMB_SIZE: u32 = 1000;
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug)]
 pub struct Metadata {
