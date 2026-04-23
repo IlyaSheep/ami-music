@@ -6,13 +6,9 @@ use ratatui::{buffer::Buffer, layout::Rect, widgets::StatefulWidget};
 use ratatui_image::{Resize, StatefulImage, picker::Picker, protocol::StatefulProtocol};
 use url::Url;
 
-use crate::app::App;
+pub struct CoverArt {}
 
-pub struct CoverArt<'a> {
-    pub app: &'a App,
-}
-
-impl<'a> CoverArt<'a> {
+impl CoverArt {
     pub async fn parse_cover_art(
         url: Url,
         picker: Arc<Picker>,
@@ -47,14 +43,10 @@ impl<'a> CoverArt<'a> {
     }
 }
 
-impl<'a> StatefulWidget for CoverArt<'a> {
+impl StatefulWidget for CoverArt {
     type State = StatefulProtocol;
-    fn render(self, area: Rect, buf: &mut Buffer, _state: &mut Self::State) {
-        if let Ok(states) = self.app.states.try_lock().as_mut() {
-            if let Some(protocol) = states.cover_art.as_mut() {
-                let widget = StatefulImage::default().resize(Resize::Scale(None));
-                StatefulWidget::render(widget, area, buf, protocol);
-            }
-        }
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let widget = StatefulImage::default().resize(Resize::Scale(None));
+        StatefulWidget::render(widget, area, buf, state);
     }
 }

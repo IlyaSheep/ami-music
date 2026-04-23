@@ -3,10 +3,11 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     widgets::{ListState, StatefulWidget, TableState, Widget},
 };
+use ratatui_image::protocol::StatefulProtocol;
 
 use crate::{
     app::App,
-    ui::{library::Library, now_playing::NowPlaying, queue::Queue},
+    ui::{cover_art::CoverArt, library::Library, now_playing::NowPlaying, queue::Queue},
 };
 
 pub mod cover_art;
@@ -38,6 +39,13 @@ impl Widget for &App {
                 Constraint::Min(0),
             ])
             .split(layout[0]);
+
+        let cover_art = CoverArt {};
+        if let Ok(states) = self.states.try_lock().as_mut() {
+            if let Some(protocol) = states.cover_art.as_mut() {
+                cover_art.render(playing_panel[0], buf, protocol);
+            }
+        }
 
         let playing_desc = NowPlaying { app: &self };
         playing_desc.render(playing_panel[1], buf);

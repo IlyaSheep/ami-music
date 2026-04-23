@@ -16,6 +16,7 @@ use tokio::{
     },
 };
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use url::Url;
 
 use crate::{app::App, state::AppStates, ui::cover_art::CoverArt};
 
@@ -25,7 +26,8 @@ pub mod handler;
 pub mod state;
 pub mod ui;
 
-const URL: &str = "ws://0.0.0.0:7878";
+const DAEMON_URL: &str = "ws://0.0.0.0:7878";
+const COVER_URL: &str = "http://0.0.0.0:7879";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -36,8 +38,8 @@ async fn main() -> Result<()> {
 
     let states = Arc::new(Mutex::new(AppStates::default()));
 
-    let (ws, _) = tokio_tungstenite::connect_async(URL).await?;
-    log::debug!("Connected to {URL}");
+    let (ws, _) = tokio_tungstenite::connect_async(DAEMON_URL).await?;
+    log::debug!("Connected to {DAEMON_URL}");
 
     let (tx, rx) = mpsc::unbounded_channel::<Command>();
 
@@ -104,21 +106,28 @@ async fn connect(
                                     states.library_snapshot = library;
                                 },
                                 ServerEvent::SendQueue(queue) => {
-                                    let mut states = states.lock().await;
-                                    states.queue_snapshot = queue;
+                                    if let Some(current_track) = queue.current_track.as_ref() {
+                                            if let Some(thumb_path) = current_track.metadata.thumbnail_path.as_ref() {
+                                                if let Some(filename) = thumb_path.file_name().and_then(|s| s.to_str()) {
+                                                    let url = Url::parse(&format!("http://0.0.0.0:7879/{}", filename))?;
+                                                    let states = states.clone();
+                                                    let picker = image_picker.clone();
+                                                    tokio::spawn(async move {
+                                                        if let Ok(Some(protocol)) = CoverArt::parse_cover_art(url, picker).await {
+                                                            let mut states = states.lock().await;
+                                                            states.cover_art = Some(protocol);
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        }
+                                        states.lock().await.queue_snapshot = queue;
                                 },
                                 ServerEvent::SendPlayerSnapshot(snapshot) => {
                                     let mut states = states.lock().await;
                                     states.player_snapshot = snapshot;
+
                                 },
-                                ServerEvent::SendCoverArtUrl(url) => {
-                                    if let Some(protocol) = CoverArt::parse_cover_art(url, image_picker.clone()).await? {
-                                        let mut states = states.lock().await;
-                                        states.cover_art = Some(protocol);
-                                    }
-
-
-                                }
                             }
                         }
                     },

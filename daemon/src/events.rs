@@ -12,5 +12,4 @@ pub enum ServerEvent {
     SendLibrary(HashMap<TrackId, Arc<Track>>),
     SendQueue(Queue),
     SendPlayerSnapshot(PlayerSnapshot),
-    SendCoverArtUrl(Url),
 }
