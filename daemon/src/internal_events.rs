@@ -4,7 +4,7 @@ use tokio::sync::broadcast;
 
 #[derive(Debug, Clone)]
 pub enum InternalEvent {
-    PlayerEmpty,
+    TrackEnded,
 }
 
 pub async fn handle_internal_event(
@@ -13,15 +13,14 @@ pub async fn handle_internal_event(
     connection_tx: &broadcast::Sender<String>,
 ) -> Result<()> {
     match event {
-        InternalEvent::PlayerEmpty => {
-            if state.orchestrator.queue.next()
-                && let Some(track) = state.orchestrator.queue.current_track.clone()
-            {
-                state.orchestrator.playback.load_track(&track.pathbuf)?;
-
-                let event =
-                    ServerEvent::SendPlayerSnapshot(state.orchestrator.playback.get_snapshot());
-                let _ = connection_tx.send(serde_json::to_string(&event)?);
+        InternalEvent::TrackEnded => {
+            state.orchestrator.next().await?;
+            let events = [
+                ServerEvent::SendPlayerSnapshot(state.orchestrator.playback.get_snapshot()),
+                ServerEvent::SendQueue(state.orchestrator.queue.clone()),
+            ];
+            for e in events {
+                let _ = connection_tx.send(serde_json::to_string(&e)?);
             }
         }
     }

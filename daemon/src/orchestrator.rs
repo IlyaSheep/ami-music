@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, thread::sleep, time::Duration};
 
 use ami_core::{
     library::{Library, TrackId},
@@ -6,8 +6,8 @@ use ami_core::{
     queue::Queue,
 };
 use anyhow::Result;
-use rodio::Player;
-use tokio::{sync::broadcast, time::sleep};
+use rodio::{Player, source::EmptyCallback};
+use tokio::sync::broadcast;
 
 use crate::internal_events::InternalEvent;
 
@@ -34,7 +34,19 @@ impl Orchestrator {
         })
     }
 
-    pub async fn watch_track_end(
+    fn load_track(&self, audio_path: &Path) -> Result<()> {
+        let tx = self.internal_event_tx.clone();
+        self.playback.load_track(audio_path)?;
+        self.playback
+            .player
+            .append(EmptyCallback::new(Box::new(move || {
+                let _ = tx.send(InternalEvent::TrackEnded);
+            })));
+
+        Ok(())
+    }
+
+    pub fn watch_track_end(
         player: Arc<Player>,
         internal_event_tx: Arc<broadcast::Sender<InternalEvent>>,
     ) {
@@ -43,9 +55,9 @@ impl Orchestrator {
 
             p.sleep_until_end();
 
-            sleep(Duration::from_secs(3)).await;
+            sleep(Duration::from_secs(3));
 
-            let _ = internal_event_tx.send(InternalEvent::PlayerEmpty);
+            let _ = internal_event_tx.send(InternalEvent::TrackEnded);
             log::debug!("Sent PlayerEmpty");
         }
     }
@@ -57,10 +69,10 @@ impl Orchestrator {
                 && self.queue.next()
                 && let Some(track) = self.queue.current_track.as_ref()
             {
-                self.playback.load_track(&track.pathbuf)?;
+                self.load_track(&track.pathbuf)?;
                 self.playback.play();
             } else if self.queue.current_track.is_some() && self.playback.player.empty() {
-                self.playback.load_track(&track.pathbuf)?;
+                self.load_track(&track.pathbuf)?;
                 self.playback.play();
             }
         }
@@ -83,7 +95,7 @@ impl Orchestrator {
             && let Some(track) = self.queue.current_track.as_ref()
         {
             self.playback.player.clear();
-            self.playback.load_track(&track.pathbuf)?;
+            self.load_track(&track.pathbuf)?;
             self.playback.play();
         }
 
@@ -95,7 +107,7 @@ impl Orchestrator {
             && let Some(track) = self.queue.current_track.as_ref()
         {
             self.playback.player.clear();
-            self.playback.load_track(&track.pathbuf)?;
+            self.load_track(&track.pathbuf)?;
             self.playback.play();
         }
 

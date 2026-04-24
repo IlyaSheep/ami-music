@@ -6,7 +6,6 @@ use ami_daemon::{
     commands::Command,
     internal_events::{InternalEvent, handle_internal_event},
     logging::setup_logger,
-    orchestrator::Orchestrator,
     states::AppState,
 };
 use anyhow::Result;
@@ -35,13 +34,6 @@ async fn main() -> Result<()> {
     let state = Arc::new(Mutex::new(AppState::new(internal_event_tx.clone())?));
     let config = Config::load()?;
     state.lock().await.orchestrator.library.load(config.library);
-
-    let player = state.lock().await.orchestrator.playback.player.clone();
-
-    let internal_event_tx_clone = internal_event_tx.clone();
-    tokio::task::spawn_blocking(move || {
-        Orchestrator::watch_track_end(player, internal_event_tx_clone)
-    });
 
     let cover_art_dir_service =
         Router::new().fallback_service(ServeDir::new(get_thumbnail_cache_path()?));
