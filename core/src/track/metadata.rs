@@ -37,6 +37,7 @@ impl Metadata {
 
     /// Cache the audio file's thumbnail and return PathBuf.
     pub fn cache_thumb(audio_path: &Path) -> Option<PathBuf> {
+        log::debug!("Caching thumbnail for {:?}", audio_path);
         let thumb_path = Self::thumb_path(audio_path).ok()?;
         if thumb_path.exists() {
             return Some(thumb_path);

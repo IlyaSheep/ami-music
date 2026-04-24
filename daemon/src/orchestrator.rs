@@ -20,10 +20,16 @@ pub struct Orchestrator {
 
 impl Orchestrator {
     pub fn new(tx: Arc<broadcast::Sender<InternalEvent>>) -> Result<Self> {
+        println!("Loading Playback...");
+        let playback = Arc::new(Playback::new()?);
+        println!("Loading Queue...");
+        let queue = Queue::default();
+        println!("Loading Library...");
+        let library = Library::default();
         Ok(Orchestrator {
-            playback: Arc::new(Playback::new()?),
-            queue: Queue::default(),
-            library: Library::default(),
+            playback,
+            queue,
+            library,
             internal_event_tx: tx,
         })
     }
