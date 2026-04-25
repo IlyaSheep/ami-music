@@ -1,6 +1,6 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Margin, Rect},
     widgets::{ListState, StatefulWidget, TableState, Widget},
 };
 
@@ -45,7 +45,7 @@ impl Widget for &App {
             let cover_art = CoverArt {};
 
             if let Some(protocol) = daemon_states.cover_art.as_mut() {
-                cover_art.render(playing_panel[0], buf, protocol);
+                cover_art.render(playing_panel[0].inner(Margin::new(1, 1)), buf, protocol);
             }
 
             let playing_desc = NowPlaying {
