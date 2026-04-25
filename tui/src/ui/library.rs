@@ -20,7 +20,7 @@ impl<'a> StatefulWidget for Library<'a> {
         buf: &mut ratatui::prelude::Buffer,
         state: &mut Self::State,
     ) {
-        if let Ok(states) = self.app.states.try_lock() {
+        if let Ok(states) = self.app.daemon_states.try_lock() {
             let library = &states.library_snapshot;
             let header = ["Title".to_text().bold(), "Artist".to_text().bold()]
                 .into_iter()

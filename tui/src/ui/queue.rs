@@ -17,7 +17,7 @@ impl<'a> StatefulWidget for Queue<'a> {
         buf: &mut ratatui::prelude::Buffer,
         state: &mut Self::State,
     ) {
-        if let Ok(states) = self.app.states.try_lock() {
+        if let Ok(states) = self.app.daemon_states.try_lock() {
             let entries: Vec<ListItem> = states
                 .queue_snapshot
                 .next_tracks

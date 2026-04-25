@@ -6,7 +6,7 @@ use ami_core::{
 use ratatui_image::protocol::StatefulProtocol;
 
 #[derive(Default)]
-pub struct AppStates {
+pub struct DaemonStates {
     pub player_snapshot: PlayerSnapshot,
     pub queue_snapshot: Queue,
     pub library_snapshot: Vec<(TrackId, Arc<Track>)>,
@@ -14,7 +14,7 @@ pub struct AppStates {
     pub cover_art: Option<StatefulProtocol>,
 }
 
-impl Debug for AppStates {
+impl Debug for DaemonStates {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AppStates")
             .field("player_snapshot", &self.player_snapshot)

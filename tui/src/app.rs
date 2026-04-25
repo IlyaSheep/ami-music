@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::{
     event::{AppEvent, Event, EventHandler},
     handler,
-    state::AppStates,
+    state::DaemonStates,
 };
 use ami_daemon::commands::Command;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -19,7 +19,7 @@ pub struct App {
     /// Event handler.
     pub events: EventHandler,
 
-    pub states: Arc<Mutex<AppStates>>,
+    pub daemon_states: Arc<Mutex<DaemonStates>>,
 
     pub command_tx: UnboundedSender<Command>,
 
@@ -28,11 +28,11 @@ pub struct App {
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new(states: Arc<Mutex<AppStates>>, command_tx: UnboundedSender<Command>) -> Self {
+    pub fn new(states: Arc<Mutex<DaemonStates>>, command_tx: UnboundedSender<Command>) -> Self {
         Self {
             running: true,
             events: EventHandler::new(),
-            states,
+            daemon_states: states,
             command_tx,
             image_picker: Arc::new(
                 Picker::from_query_stdio().unwrap_or_else(|_| Picker::halfblocks()),
@@ -43,9 +43,11 @@ impl App {
     /// Run the application's main loop.
     pub async fn run(mut self, mut terminal: DefaultTerminal) -> color_eyre::Result<()> {
         while self.running {
-            terminal.draw(|frame| frame.render_widget(&self, frame.area()))?;
             match self.events.next().await? {
-                Event::Tick => self.tick(),
+                Event::Tick => {
+                    self.tick();
+                    terminal.draw(|frame| frame.render_widget(&self, frame.area()))?;
+                }
                 Event::Crossterm(event) => match event {
                     crossterm::event::Event::Key(key_event)
                         if key_event.kind == crossterm::event::KeyEventKind::Press =>
@@ -56,13 +58,17 @@ impl App {
                 },
                 Event::App(app_event) => match app_event {
                     AppEvent::CursorDown => {
-                        handler::library::select_next_track(self.states.clone()).await
+                        handler::library::select_next_track(self.daemon_states.clone()).await
                     }
                     AppEvent::CursorUp => {
-                        handler::library::select_prev_track(self.states.clone()).await
+                        handler::library::select_prev_track(self.daemon_states.clone()).await
                     }
                     AppEvent::Enqueue => {
-                        handler::queue::enqueue(self.command_tx.clone(), self.states.clone()).await;
+                        handler::queue::enqueue(
+                            self.command_tx.clone(),
+                            self.daemon_states.clone(),
+                        )
+                        .await;
                     }
                     AppEvent::Next => {
                         handler::queue::next(self.command_tx.clone());

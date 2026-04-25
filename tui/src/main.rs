@@ -18,7 +18,7 @@ use tokio::{
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use url::Url;
 
-use crate::{app::App, state::AppStates, ui::cover_art::CoverArt};
+use crate::{app::App, state::DaemonStates, ui::cover_art::CoverArt};
 
 pub mod app;
 pub mod event;
@@ -36,7 +36,7 @@ async fn main() -> Result<()> {
 
     let terminal = ratatui::init();
 
-    let states = Arc::new(Mutex::new(AppStates::default()));
+    let states = Arc::new(Mutex::new(DaemonStates::default()));
 
     let (ws, _) = tokio_tungstenite::connect_async(DAEMON_URL).await?;
     log::debug!("Connected to {DAEMON_URL}");
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
 async fn connect(
     ws: WebSocketStream<MaybeTlsStream<TcpStream>>,
     mut rx: UnboundedReceiver<Command>,
-    states: Arc<Mutex<AppStates>>,
+    states: Arc<Mutex<DaemonStates>>,
     image_picker: Arc<Picker>,
 ) -> Result<()> {
     let (mut ws_sink, mut ws_stream) = ws.split();

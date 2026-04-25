@@ -17,9 +17,10 @@ impl<'a> Widget for NowPlaying<'a> {
     where
         Self: Sized,
     {
-        if let Ok(states) = self.app.states.try_lock()
+        if let Ok(states) = self.app.daemon_states.try_lock()
             && let Some(track) = states.queue_snapshot.current_track.as_ref()
         {
+            let position = states.player_snapshot.position.clone();
             let desc_lines = [
                 Some(track.metadata.title.clone()),
                 Some(
@@ -35,6 +36,11 @@ impl<'a> Widget for NowPlaying<'a> {
                     (None, Some(year)) => Some(format!("{}", year)),
                     (None, None) => None,
                 },
+                Some(format!(
+                    "{}:{:02}",
+                    position.as_secs().saturating_div(60),
+                    position.as_secs() % 60
+                )),
             ];
 
             let flat_desc = desc_lines.into_iter().flatten().collect::<Vec<String>>();
