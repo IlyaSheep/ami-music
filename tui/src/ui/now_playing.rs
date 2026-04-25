@@ -6,10 +6,10 @@ use ratatui::{
     widgets::{Paragraph, Widget},
 };
 
-use crate::app::App;
+use crate::state::DaemonStates;
 
 pub struct NowPlaying<'a> {
-    pub app: &'a App,
+    pub daemon_states: &'a DaemonStates,
 }
 
 impl<'a> Widget for NowPlaying<'a> {
@@ -17,10 +17,8 @@ impl<'a> Widget for NowPlaying<'a> {
     where
         Self: Sized,
     {
-        if let Ok(states) = self.app.daemon_states.try_lock()
-            && let Some(track) = states.queue_snapshot.current_track.as_ref()
-        {
-            let position = states.player_snapshot.position.clone();
+        if let Some(track) = self.daemon_states.queue_snapshot.current_track.as_ref() {
+            let position = self.daemon_states.player_snapshot.position.clone();
             let desc_lines = [
                 Some(track.metadata.title.clone()),
                 Some(

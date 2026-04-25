@@ -3,10 +3,10 @@ use ratatui::{
     widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
-use crate::app::App;
+use crate::state::DaemonStates;
 
 pub struct Queue<'a> {
-    pub app: &'a App,
+    pub daemon_states: &'a DaemonStates,
 }
 
 impl<'a> StatefulWidget for Queue<'a> {
@@ -17,21 +17,20 @@ impl<'a> StatefulWidget for Queue<'a> {
         buf: &mut ratatui::prelude::Buffer,
         state: &mut Self::State,
     ) {
-        if let Ok(states) = self.app.daemon_states.try_lock() {
-            let entries: Vec<ListItem> = states
-                .queue_snapshot
-                .next_tracks
-                .iter()
-                .map(|t| ListItem::from(t.metadata.title.clone()))
-                .collect();
+        let entries: Vec<ListItem> = self
+            .daemon_states
+            .queue_snapshot
+            .next_tracks
+            .iter()
+            .map(|t| ListItem::from(t.metadata.title.clone()))
+            .collect();
 
-            let highlight = Style::default().reversed();
-            let list = List::new(entries)
-                .highlight_style(highlight)
-                .block(Block::new().title("Queue").bold())
-                .not_bold();
+        let highlight = Style::default().reversed();
+        let list = List::new(entries)
+            .highlight_style(highlight)
+            .block(Block::new().title("Queue").bold())
+            .not_bold();
 
-            StatefulWidget::render(list, area, buf, state);
-        }
+        StatefulWidget::render(list, area, buf, state);
     }
 }

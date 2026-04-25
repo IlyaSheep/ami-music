@@ -41,20 +41,27 @@ impl Widget for &App {
             ])
             .split(layout[0]);
 
-        let cover_art = CoverArt {};
-        if let Ok(states) = self.daemon_states.try_lock().as_mut() {
-            if let Some(protocol) = states.cover_art.as_mut() {
+        if let Ok(daemon_states) = self.daemon_states.try_lock().as_mut() {
+            let cover_art = CoverArt {};
+
+            if let Some(protocol) = daemon_states.cover_art.as_mut() {
                 cover_art.render(playing_panel[0], buf, protocol);
             }
+
+            let playing_desc = NowPlaying {
+                daemon_states: &daemon_states,
+            };
+            playing_desc.render(playing_panel[1], buf);
+
+            let queue = Queue {
+                daemon_states: &daemon_states,
+            };
+            queue.render(layout[2], buf, &mut ListState::default());
+
+            let library = Library {
+                daemon_states: &daemon_states,
+            };
+            library.render(layout[1], buf, &mut TableState::default());
         }
-
-        let playing_desc = NowPlaying { app: &self };
-        playing_desc.render(playing_panel[1], buf);
-
-        let queue = Queue { app: &self };
-        queue.render(layout[2], buf, &mut ListState::default());
-
-        let library = Library { app: &self };
-        library.render(layout[1], buf, &mut TableState::default());
     }
 }
