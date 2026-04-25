@@ -26,6 +26,8 @@ pub async fn handle_playback_command(
     state: Arc<Mutex<AppState>>,
     tx: &broadcast::Sender<String>,
 ) -> Result<()> {
+    let no_broadcast = matches!(command, PlaybackCommand::Seek { .. });
+
     match command {
         PlaybackCommand::Play => state.lock().await.orchestrator.playback.play(),
 
@@ -66,10 +68,13 @@ pub async fn handle_playback_command(
         PlaybackCommand::GetSnapshot => {}
     };
 
-    let event =
-        ServerEvent::SendPlayerSnapshot(state.lock().await.orchestrator.playback.get_snapshot());
-    let json = serde_json::to_string(&event)?;
-    let _ = tx.send(json);
+    if !no_broadcast {
+        let event = ServerEvent::SendPlayerSnapshot(
+            state.lock().await.orchestrator.playback.get_snapshot(),
+        );
+        let json = serde_json::to_string(&event)?;
+        let _ = tx.send(json);
+    }
 
     Ok(())
 }

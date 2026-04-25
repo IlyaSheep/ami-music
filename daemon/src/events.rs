@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use ami_core::{
     library::TrackId, player::playback_snapshot::PlayerSnapshot, queue::Queue, track::Track,
@@ -11,4 +11,5 @@ pub enum ServerEvent {
     SendLibrary(HashMap<TrackId, Arc<Track>>),
     SendQueue(Queue),
     SendPlayerSnapshot(PlayerSnapshot),
+    SendPlayerPosition(Duration),
 }

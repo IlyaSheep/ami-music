@@ -126,8 +126,12 @@ async fn connect(
                                 ServerEvent::SendPlayerSnapshot(snapshot) => {
                                     let mut states = states.lock().await;
                                     states.player_snapshot = snapshot;
-
                                 },
+
+                                ServerEvent::SendPlayerPosition(duration) => {
+                                    let mut states = states.lock().await;
+                                    states.player_snapshot.position = duration;
+                                }
                             }
                         }
                     },

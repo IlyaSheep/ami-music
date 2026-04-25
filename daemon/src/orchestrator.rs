@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc, thread::sleep, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use ami_core::{
     library::{Library, TrackId},
@@ -46,19 +46,18 @@ impl Orchestrator {
         Ok(())
     }
 
-    pub fn watch_track_end(
+    pub async fn send_player_position(
         player: Arc<Player>,
         internal_event_tx: Arc<broadcast::Sender<InternalEvent>>,
     ) {
         loop {
-            let p = Arc::clone(&player);
-
-            p.sleep_until_end();
-
-            sleep(Duration::from_secs(3));
-
-            let _ = internal_event_tx.send(InternalEvent::TrackEnded);
-            log::debug!("Sent PlayerEmpty");
+            let mut interval = tokio::time::interval(Duration::from_millis(500));
+            loop {
+                interval.tick().await;
+                if !player.is_paused() {
+                    let _ = internal_event_tx.send(InternalEvent::SendPlayerPosition);
+                }
+            }
         }
     }
 

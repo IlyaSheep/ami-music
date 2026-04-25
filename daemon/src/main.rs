@@ -6,6 +6,7 @@ use ami_daemon::{
     commands::Command,
     internal_events::{InternalEvent, handle_internal_event},
     logging::setup_logger,
+    orchestrator::Orchestrator,
     states::AppState,
 };
 use anyhow::Result;
@@ -46,6 +47,10 @@ async fn main() -> Result<()> {
         .await
         .unwrap();
     });
+
+    let tx = Arc::clone(&internal_event_tx);
+    let player = Arc::clone(&state.lock().await.orchestrator.playback.player);
+    tokio::spawn(async move { Orchestrator::send_player_position(player, tx) });
 
     let listener = TcpListener::bind(DAEMON_ADDR).await.unwrap();
     println!("Server listening on {DAEMON_ADDR}");
