@@ -50,13 +50,11 @@ impl Orchestrator {
         player: Arc<Player>,
         internal_event_tx: Arc<broadcast::Sender<InternalEvent>>,
     ) {
+        let mut interval = tokio::time::interval(Duration::from_millis(250));
         loop {
-            let mut interval = tokio::time::interval(Duration::from_millis(500));
-            loop {
-                interval.tick().await;
-                if !player.is_paused() {
-                    let _ = internal_event_tx.send(InternalEvent::SendPlayerPosition);
-                }
+            interval.tick().await;
+            if !player.is_paused() {
+                let _ = internal_event_tx.send(InternalEvent::SendPlayerPosition);
             }
         }
     }

@@ -50,7 +50,7 @@ async fn main() -> Result<()> {
 
     let tx = Arc::clone(&internal_event_tx);
     let player = Arc::clone(&state.lock().await.orchestrator.playback.player);
-    tokio::spawn(async move { Orchestrator::send_player_position(player, tx) });
+    tokio::spawn(async move { Orchestrator::send_player_position(player, tx).await });
 
     let listener = TcpListener::bind(DAEMON_ADDR).await.unwrap();
     println!("Server listening on {DAEMON_ADDR}");
