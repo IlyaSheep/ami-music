@@ -7,14 +7,14 @@ use ami_daemon::{
     internal_events::{InternalEvent, handle_internal_event},
     logging::setup_logger,
     orchestrator::Orchestrator,
-    states::AppState,
+    states::{SharedState, new_shared_state},
 };
 use anyhow::Result;
 use axum::Router;
 use futures_util::{SinkExt, StreamExt};
 use tokio::{
     net::{TcpListener, TcpStream},
-    sync::{Mutex, broadcast},
+    sync::broadcast,
 };
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use tower_http::services::ServeDir;
@@ -32,9 +32,15 @@ async fn main() -> Result<()> {
     let (internal_event_tx, _) = broadcast::channel::<InternalEvent>(CHANNEL_CAPACITY);
     let internal_event_tx = Arc::new(internal_event_tx);
 
-    let state = Arc::new(Mutex::new(AppState::new(internal_event_tx.clone())?));
+    let state = new_shared_state(Arc::clone(&internal_event_tx))?;
     let config = Config::load()?;
-    state.lock().await.orchestrator.library.load(config.library);
+
+    state
+        .write()
+        .await
+        .orchestrator
+        .library
+        .load(config.library);
 
     let cover_art_dir_service =
         Router::new().fallback_service(ServeDir::new(get_thumbnail_cache_path()?));
@@ -49,7 +55,7 @@ async fn main() -> Result<()> {
     });
 
     let tx = Arc::clone(&internal_event_tx);
-    let player = Arc::clone(&state.lock().await.orchestrator.playback.player);
+    let player = Arc::clone(&state.read().await.orchestrator.playback.player);
     tokio::spawn(async move { Orchestrator::send_player_position(player, tx).await });
 
     let listener = TcpListener::bind(DAEMON_ADDR).await.unwrap();
@@ -80,7 +86,7 @@ async fn handle_connection(
     peer: SocketAddr,
     connection_tx: Arc<broadcast::Sender<String>>,
     internal_event_tx: Arc<broadcast::Sender<InternalEvent>>,
-    state: Arc<Mutex<AppState>>,
+    state: SharedState,
 ) -> Result<()> {
     println!("{peer} connected");
 
@@ -121,7 +127,7 @@ async fn handle_connection(
 
             internal_event = internal_event_rx.recv() => {
                 if let Ok(event) = internal_event {
-                    let mut state = state.lock().await;
+                    let mut state = state.write().await;
                     handle_internal_event(event, &mut state, &connection_tx).await?;
                 }
             }
