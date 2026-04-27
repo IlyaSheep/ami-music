@@ -96,17 +96,17 @@ async fn connect(
                         if let Ok(event) = serde_json::from_str::<ServerEvent>(&text) {
                             match event {
                                 ServerEvent::SendLibrary(tracks) => {
-                                    let mut states = states.lock().await;
                                     let mut library: Vec<(TrackId, Arc<Track>)> = tracks
                                                 .iter()
                                                 .map(|(&k, v)| (k, v.clone()))
                                                 .collect();
                                     library.sort_by(|(_, a), (_, b)| a.metadata.title.cmp(&b.metadata.title));
 
-                                    states.library_snapshot = library;
+                                    states.lock().await.library_snapshot = library;
                                 },
                                 ServerEvent::SendQueue(queue) => {
                                     if let Some(current_track) = queue.current_track.as_ref() {
+                                            // Get and parse cover art if thumbnail path exists
                                             if let Some(thumb_path) = current_track.metadata.thumbnail_path.as_ref() {
                                                 if let Some(filename) = thumb_path.file_name().and_then(|s| s.to_str()) {
                                                     let url = Url::parse(&format!("{}/{}", COVER_URL, filename))?;
@@ -119,18 +119,18 @@ async fn connect(
                                                         }
                                                     });
                                                 }
+                                            } else {
+                                                states.lock().await.cover_art = None;
                                             }
                                         }
                                         states.lock().await.queue_snapshot = queue;
                                 },
                                 ServerEvent::SendPlayerSnapshot(snapshot) => {
-                                    let mut states = states.lock().await;
-                                    states.player_snapshot = snapshot;
+                                    states.lock().await.player_snapshot = snapshot;
                                 },
 
                                 ServerEvent::SendPlayerPosition(duration) => {
-                                    let mut states = states.lock().await;
-                                    states.player_snapshot.position = duration;
+                                    states.lock().await.player_snapshot.position = duration;
                                 }
                             }
                         }
