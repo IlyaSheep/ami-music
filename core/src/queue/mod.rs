@@ -90,4 +90,15 @@ impl Queue {
     pub fn is_empty(&self) -> bool {
         self.next_tracks.is_empty()
     }
+
+    // prev + curr + next
+    pub fn restart(&mut self) {
+        if let Some(current) = self.current_track.take() {
+            let mut queue = Vec::new();
+            queue.extend(self.previous_tracks.drain(..));
+            queue.push(current);
+            queue.extend(self.next_tracks.drain(..));
+            self.next_tracks = queue.into();
+        }
+    }
 }
