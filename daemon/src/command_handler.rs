@@ -96,6 +96,7 @@ pub async fn handle_queue_command(
         QueueCommand::Shuffle => state.write().await.orchestrator.shuffle(),
         QueueCommand::Clear => state.write().await.orchestrator.clear(),
         QueueCommand::SetLoopMode(mode) => state.write().await.orchestrator.queue.loop_mode = mode,
+        QueueCommand::CycleLoopMode => state.write().await.orchestrator.queue.cycle_loop_mode(),
         QueueCommand::Fetch => {}
     };
 

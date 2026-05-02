@@ -34,6 +34,7 @@ pub enum QueueCommand {
     Shuffle,
     Clear,
     SetLoopMode(LoopMode),
+    CycleLoopMode,
     Fetch,
 }
 

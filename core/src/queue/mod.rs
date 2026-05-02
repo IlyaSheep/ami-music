@@ -101,4 +101,12 @@ impl Queue {
             self.next_tracks = queue.into();
         }
     }
+
+    pub fn cycle_loop_mode(&mut self) {
+        self.loop_mode = match self.loop_mode {
+            LoopMode::None => LoopMode::Queue,
+            LoopMode::Queue => LoopMode::Track,
+            LoopMode::Track => LoopMode::None,
+        };
+    }
 }
