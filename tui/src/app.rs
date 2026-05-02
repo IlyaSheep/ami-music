@@ -5,11 +5,13 @@ use crate::{
     handler,
     state::DaemonStates,
 };
-use ami_daemon::commands::Command;
+use ami_daemon::commands::{Command, PlaybackCommand};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use ratatui_image::picker::Picker;
 use tokio::sync::{Mutex, mpsc::UnboundedSender};
+
+const VOLUME_CHANGE_STEP: f32 = 10.0;
 
 /// Application.
 #[derive(Debug)]
@@ -86,6 +88,39 @@ impl App {
                     AppEvent::SeekBackward => {
                         handler::playback::seek_backward(self.command_tx.clone());
                     }
+                    AppEvent::CycleLoopMode => {
+                        handler::queue::cycle_loop_mode(self.command_tx.clone());
+                    }
+                    AppEvent::PrependQueue => {
+                        handler::queue::prepend_queue(
+                            self.command_tx.clone(),
+                            self.daemon_states.clone(),
+                        )
+                        .await
+                    }
+                    AppEvent::VolumeUp => {
+                        let _ =
+                            self.command_tx
+                                .send(Command::Playback(PlaybackCommand::IncreaseVol {
+                                    step: VOLUME_CHANGE_STEP,
+                                }));
+                    }
+
+                    AppEvent::VolumeDown => {
+                        let _ =
+                            self.command_tx
+                                .send(Command::Playback(PlaybackCommand::DecreaseVol {
+                                    step: VOLUME_CHANGE_STEP,
+                                }));
+                    }
+
+                    AppEvent::PlayNow => {
+                        handler::queue::queue_and_play_now(
+                            self.command_tx.clone(),
+                            self.daemon_states.clone(),
+                        )
+                        .await;
+                    }
 
                     AppEvent::Quit => self.quit(),
                 },
@@ -109,6 +144,10 @@ impl App {
             KeyCode::Down => self.events.send(AppEvent::CursorDown),
             KeyCode::Right => self.events.send(AppEvent::SeekForward),
             KeyCode::Left => self.events.send(AppEvent::SeekBackward),
+            KeyCode::Char('-') => self.events.send(AppEvent::VolumeDown),
+            KeyCode::Char('+') => self.events.send(AppEvent::VolumeUp),
+            KeyCode::Char('n') => self.events.send(AppEvent::PrependQueue),
+            KeyCode::Char('N') => self.events.send(AppEvent::PlayNow),
             // Other handlers you could add here.
             _ => {}
         }

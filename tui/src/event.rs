@@ -39,6 +39,11 @@ pub enum AppEvent {
     Next,
     Prev,
     Enqueue,
+    PrependQueue,
+    PlayNow,
+    CycleLoopMode,
+    VolumeUp,
+    VolumeDown,
     Quit,
 }
 
