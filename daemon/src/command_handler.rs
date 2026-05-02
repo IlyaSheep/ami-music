@@ -27,11 +27,30 @@ pub async fn handle_playback_command(
     let no_broadcast = matches!(command, PlaybackCommand::Seek { .. });
 
     match command {
-        PlaybackCommand::Play => state.read().await.orchestrator.playback.play(),
+        PlaybackCommand::Play => {
+            let state = state.write().await;
+            if state.orchestrator.queue.current_track.is_some()
+                && state.orchestrator.playback.player.empty()
+            {
+                state.orchestrator.rewind()?;
+            }
+
+            state.orchestrator.playback.play();
+        }
 
         PlaybackCommand::Pause => state.read().await.orchestrator.playback.pause(),
 
-        PlaybackCommand::TogglePlay => state.read().await.orchestrator.playback.toggle_play(),
+        PlaybackCommand::TogglePlay => {
+            let state = state.write().await;
+            if state.orchestrator.queue.current_track.is_some()
+                && state.orchestrator.playback.player.empty()
+            {
+                state.orchestrator.rewind()?;
+                state.orchestrator.playback.play();
+            } else {
+                state.orchestrator.playback.toggle_play();
+            }
+        }
 
         PlaybackCommand::SetPosition(pos) => {
             state.read().await.orchestrator.playback.set_position(pos)?
