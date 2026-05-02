@@ -89,6 +89,11 @@ pub async fn handle_queue_command(
         }
         QueueCommand::Prepend { track_id } => state.write().await.orchestrator.prepend(track_id),
         QueueCommand::Dequeue { index } => state.write().await.orchestrator.dequeue(index),
+        QueueCommand::PlayNow { track_id } => {
+            let mut state = state.write().await;
+            state.orchestrator.prepend(track_id);
+            state.orchestrator.next().await?;
+        }
         QueueCommand::Next => {
             state.write().await.orchestrator.next().await?;
         }
