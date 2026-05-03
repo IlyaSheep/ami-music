@@ -1,28 +1,16 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
-use ami_core::{cache::get_thumbnail_cache_path, config::Config};
+use ami_core::config::Config;
 use ami_daemon::{
-    command_handler::handle_command,
-    commands::Command,
-    internal_events::{InternalEvent, handle_internal_event},
-    logging::setup_logger,
-    orchestrator::Orchestrator,
-    states::{SharedState, new_shared_state},
+    internal_events::InternalEvent, logging::setup_logger, orchestrator::Orchestrator, services,
+    states::new_shared_state, websockets::WebSocketService,
 };
 use anyhow::Result;
-use axum::Router;
-use futures_util::{SinkExt, StreamExt};
-use tokio::{
-    net::{TcpListener, TcpStream},
-    sync::broadcast,
-};
-use tokio_tungstenite::{accept_async, tungstenite::Message};
-use tower_http::services::ServeDir;
+use tokio::{net::TcpListener, sync::broadcast};
 
 // How many messages the broadcast channel can buffer
 const CHANNEL_CAPACITY: usize = 32;
 const DAEMON_ADDR: &str = "0.0.0.0:7878";
-const COVER_ADDR: &str = "0.0.0.0:7879";
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -32,109 +20,30 @@ async fn main() -> Result<()> {
     let (internal_event_tx, _) = broadcast::channel::<InternalEvent>(CHANNEL_CAPACITY);
     let internal_event_tx = Arc::new(internal_event_tx);
 
-    let state = new_shared_state(Arc::clone(&internal_event_tx))?;
+    let shared_state = new_shared_state(Arc::clone(&internal_event_tx))?;
     let config = Config::load()?;
 
-    state
+    shared_state
         .write()
         .await
         .orchestrator
         .library
         .load(config.library);
 
-    let cover_art_dir_service =
-        Router::new().fallback_service(ServeDir::new(get_thumbnail_cache_path()?));
-
-    tokio::spawn(async {
-        axum::serve(
-            TcpListener::bind(COVER_ADDR).await.unwrap(),
-            cover_art_dir_service,
-        )
-        .await
-        .unwrap();
-    });
+    services::run_thumbnail_service()?;
 
     let tx = Arc::clone(&internal_event_tx);
-    let player = Arc::clone(&state.read().await.orchestrator.playback.player);
+    let player = Arc::clone(&shared_state.read().await.orchestrator.playback.player);
     tokio::spawn(async move { Orchestrator::send_player_position(player, tx).await });
 
-    let listener = TcpListener::bind(DAEMON_ADDR).await.unwrap();
-    println!("Server listening on {DAEMON_ADDR}");
+    let listener = TcpListener::bind(DAEMON_ADDR).await?;
+    log::debug!("Server listening on {DAEMON_ADDR}");
 
     // A broadcast channel: one sender, many receivers (one per client)
     let (connection_tx, _) = broadcast::channel::<String>(CHANNEL_CAPACITY);
     let connection_tx = Arc::new(connection_tx); // Share the sender across tasks
 
-    loop {
-        let (stream, peer) = listener.accept().await.unwrap();
-        let connection_tx = Arc::clone(&connection_tx);
-        let internal_event_rx = Arc::clone(&internal_event_tx);
-
-        // Spawn a new async task for each client — they run concurrently
-        tokio::spawn(handle_connection(
-            stream,
-            peer,
-            connection_tx,
-            internal_event_rx,
-            state.clone(),
-        ));
-    }
-}
-
-async fn handle_connection(
-    stream: TcpStream,
-    peer: SocketAddr,
-    connection_tx: Arc<broadcast::Sender<String>>,
-    internal_event_tx: Arc<broadcast::Sender<InternalEvent>>,
-    state: SharedState,
-) -> Result<()> {
-    println!("{peer} connected");
-
-    // Upgrade the TCP connection to a WebSocket
-    let ws = accept_async(stream).await.unwrap();
-
-    // Split the WebSocket into a writer (sink) and reader (stream)
-    let (mut ws_sink, mut ws_stream) = ws.split();
-
-    // Subscribe to the broadcast channel to receive messages from other clients
-    let mut connection_rx = connection_tx.subscribe();
-    let mut internal_event_rx = internal_event_tx.subscribe();
-
-    loop {
-        tokio::select! {
-            // Receive messages from clients.
-            msg = ws_stream.next() => {
-                match msg {
-                    Some(Ok(Message::Text(text))) => {
-                        if let Ok(cmd) = serde_json::from_str::<Command>(&text) {
-                            log::debug!("Received a message from client: {}", text);
-                            {
-                                // Handle commands. Mutate state and send messages to the local broadcast channel if needed.
-                                handle_command(cmd, state.clone(), &connection_tx).await?;
-                            }
-                    }}
-                    // Client disconnected or error
-                    _ => break,
-                }
-            }
-
-            // Send messages accumulated in the local broadcast channel to all clients.
-            broadcast = connection_rx.recv() => {
-                if let Ok(text) = broadcast {
-                    let _ = ws_sink.send(Message::Text(text.into())).await;
-                }
-            }
-
-            internal_event = internal_event_rx.recv() => {
-                if let Ok(event) = internal_event {
-                    let mut state = state.write().await;
-                    handle_internal_event(event, &mut state, &connection_tx).await?;
-                }
-            }
-        }
-    }
-
-    println!("{peer} disconnected");
-
-    Ok(())
+    let ws_service =
+        WebSocketService::new(listener, connection_tx, internal_event_tx, shared_state);
+    ws_service.start().await
 }

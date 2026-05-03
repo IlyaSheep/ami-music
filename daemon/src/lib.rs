@@ -1,7 +1,10 @@
+pub mod clap;
 pub mod command_handler;
 pub mod commands;
 pub mod events;
 pub mod internal_events;
 pub mod logging;
 pub mod orchestrator;
+pub mod services;
 pub mod states;
+pub mod websockets;
