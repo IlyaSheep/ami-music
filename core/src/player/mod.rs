@@ -105,7 +105,11 @@ impl Playback {
             .saturating_add(offset_seconds)
             .max(0) as u64;
 
-        self.player.try_seek(Duration::from_secs(duration))?;
+        self.player
+            .try_seek(Duration::from_secs(duration))
+            .inspect_err(|e| log::error!("{e}"))
+            .ok();
+
         log::debug!("Set position to {:?}", self.player.get_pos());
 
         Ok(())
