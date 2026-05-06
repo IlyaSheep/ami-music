@@ -34,22 +34,26 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     setup_logger()?;
 
-    let terminal = ratatui::init();
+    match tokio_tungstenite::connect_async(DAEMON_URL).await {
+        Ok((ws, _)) => {
+            log::debug!("Connected to {DAEMON_URL}");
 
-    let states = Arc::new(Mutex::new(DaemonStates::default()));
+            let states = Arc::new(Mutex::new(DaemonStates::default()));
+            let terminal = ratatui::init();
 
-    let (ws, _) = tokio_tungstenite::connect_async(DAEMON_URL).await?;
-    log::debug!("Connected to {DAEMON_URL}");
+            let (tx, rx) = mpsc::unbounded_channel::<Command>();
 
-    let (tx, rx) = mpsc::unbounded_channel::<Command>();
+            let app = App::new(states.clone(), tx);
 
-    let app = App::new(states.clone(), tx);
-
-    tokio::spawn(connect(ws, rx, states, app.image_picker.clone()));
-    let result = app.run(terminal).await;
-    ratatui::restore();
-
-    result
+            tokio::spawn(connect(ws, rx, states, app.image_picker.clone()));
+            let result = app.run(terminal).await;
+            result
+        }
+        Err(e) => {
+            eprintln!("Error connecting to {}.\n[{}]", DAEMON_URL, e);
+            Ok(())
+        }
+    }
 }
 
 async fn connect(

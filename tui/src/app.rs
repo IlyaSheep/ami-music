@@ -28,6 +28,12 @@ pub struct App {
     pub image_picker: Arc<Picker>,
 }
 
+impl Drop for App {
+    fn drop(&mut self) {
+        ratatui::restore();
+    }
+}
+
 impl App {
     /// Constructs a new instance of [`App`].
     pub fn new(states: Arc<Mutex<DaemonStates>>, command_tx: UnboundedSender<Command>) -> Self {
