@@ -83,9 +83,7 @@ async fn run_daemon() -> Result<()> {
 
     services::run_thumbnail_service()?;
 
-    let tx = internal_event_tx.clone();
     let player = Arc::clone(&shared_state.read().await.orchestrator.playback.player);
-    tokio::spawn(async move { Orchestrator::send_player_position(player, tx).await });
 
     let listener = TcpListener::bind(DAEMON_ADDR).await?;
     log::debug!("Server listening on {DAEMON_ADDR}");
@@ -93,6 +91,9 @@ async fn run_daemon() -> Result<()> {
     // A broadcast channel: one sender, many receivers (one per client)
     let (connection_tx, _) = broadcast::channel::<String>(CHANNEL_CAPACITY);
     let connection_tx = Arc::new(connection_tx); // Share the sender across tasks
+
+    let tx = Arc::clone(&connection_tx);
+    tokio::spawn(async move { Orchestrator::send_player_position(player, &tx).await });
 
     let mut ws_service =
         WebSocketService::new(listener, connection_tx, internal_event_rx, shared_state);

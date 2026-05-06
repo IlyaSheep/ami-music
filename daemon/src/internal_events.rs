@@ -6,7 +6,6 @@ use tokio::sync::broadcast;
 #[derive(Debug, Clone)]
 pub enum InternalEvent {
     TrackEnded,
-    SendPlayerPosition,
 }
 
 pub async fn handle_internal_event(
@@ -49,12 +48,6 @@ pub async fn handle_internal_event(
                     }
                 }
             }
-        }
-
-        InternalEvent::SendPlayerPosition => {
-            let event =
-                ServerEvent::SendPlayerPosition(state.orchestrator.playback.player.get_pos());
-            let _ = connection_tx.send(serde_json::to_string(&event)?);
         }
     }
 

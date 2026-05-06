@@ -1,4 +1,11 @@
-use std::{path::Path, sync::Arc, time::Duration};
+use std::{
+    path::Path,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 use ami_core::{
     library::{Library, TrackId},
@@ -7,9 +14,9 @@ use ami_core::{
 };
 use anyhow::Result;
 use rodio::{Player, source::EmptyCallback};
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{broadcast, mpsc::UnboundedSender};
 
-use crate::internal_events::InternalEvent;
+use crate::{events::ServerEvent, internal_events::InternalEvent};
 
 pub struct Orchestrator {
     pub playback: Arc<Playback>,
@@ -37,12 +44,16 @@ impl Orchestrator {
     fn load_track(&self, audio_path: &Path) -> Result<()> {
         let tx = self.internal_event_tx.clone();
         self.playback.load_track(audio_path)?;
-        let player = self.playback.player.clone();
+        let fired = Arc::new(AtomicBool::new(false));
         self.playback
             .player
             .append(EmptyCallback::new(Box::new(move || {
-                player.clear();
-                let _ = tx.send(InternalEvent::TrackEnded);
+                if fired
+                    .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+                    .is_ok()
+                {
+                    let _ = tx.send(InternalEvent::TrackEnded);
+                }
             })));
 
         Ok(())
@@ -59,13 +70,14 @@ impl Orchestrator {
 
     pub async fn send_player_position(
         player: Arc<Player>,
-        internal_event_tx: UnboundedSender<InternalEvent>,
-    ) {
+        connection_tx: &broadcast::Sender<String>,
+    ) -> Result<()> {
         let mut interval = tokio::time::interval(Duration::from_millis(250));
         loop {
             interval.tick().await;
             if !player.is_paused() {
-                let _ = internal_event_tx.send(InternalEvent::SendPlayerPosition);
+                let event = ServerEvent::SendPlayerPosition(player.get_pos());
+                let _ = connection_tx.send(serde_json::to_string(&event)?);
             }
         }
     }
