@@ -8,7 +8,6 @@ use crate::player::{playback_snapshot::PlayerSnapshot, playback_status::Playback
 #[cfg(test)]
 pub mod tests;
 
-pub mod mpris;
 pub mod playback_snapshot;
 pub mod playback_status;
 

@@ -3,9 +3,9 @@ use mpris_server::{
     zbus::{self, fdo},
 };
 
-use crate::player::Playback;
+use crate::services::mpris::Mpris;
 
-impl RootInterface for Playback {
+impl RootInterface for Mpris {
     async fn raise(&self) -> fdo::Result<()> {
         Ok(())
     }

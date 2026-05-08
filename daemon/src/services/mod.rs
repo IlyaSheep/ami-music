@@ -4,6 +4,8 @@ use axum::Router;
 use tokio::net::TcpListener;
 use tower_http::services::ServeDir;
 
+pub mod mpris;
+
 const COVER_ADDR: &str = "0.0.0.0:7879";
 
 pub fn run_thumbnail_service() -> Result<()> {
