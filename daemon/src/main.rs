@@ -1,4 +1,4 @@
-use ami_daemon::{daemon_process, logging::setup_logger, states::App};
+use ami_daemon::{app::App, daemon_process, logging::setup_logger};
 use anyhow::Result;
 
 // How many messages the broadcast channel can buffer

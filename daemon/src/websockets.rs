@@ -9,10 +9,10 @@ use tokio::{
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 
 use crate::{
+    app::SharedState,
     command_handler::handle_command,
     commands::Command,
     internal_events::{InternalEvent, handle_internal_event},
-    states::SharedState,
 };
 
 pub struct WebSocketService {

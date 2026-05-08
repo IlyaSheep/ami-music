@@ -1,4 +1,4 @@
-use crate::states::SharedState;
+use crate::app::SharedState;
 
 pub mod player_interface;
 pub mod root_interface;

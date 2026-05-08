@@ -2,9 +2,9 @@ use anyhow::Result;
 use tokio::sync::broadcast;
 
 use crate::{
+    app::SharedState,
     commands::{Command, LibraryCommand, PlaybackCommand, QueueCommand},
     events::ServerEvent,
-    states::SharedState,
 };
 
 pub async fn handle_command(
