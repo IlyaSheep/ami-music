@@ -1,7 +1,8 @@
-use std::{collections::HashMap, fs::read_dir, str::FromStr, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
-use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
+use walkdir::WalkDir;
 
 use crate::{config::LibraryConfig, library::helper::is_rodio_supported, track::Track};
 
@@ -46,9 +47,14 @@ impl Library {
             .directories
             .par_iter()
             .filter(|path| path.is_dir())
-            .flat_map(|dir| read_dir(dir).into_iter().flatten().par_bridge())
-            .filter_map(|entry| entry.ok())
-            .map(|entry| entry.path())
+            .flat_map(|dir| {
+                WalkDir::new(dir)
+                    .into_iter()
+                    .filter_map(|e| e.ok())
+                    .filter(|e| e.file_type().is_file())
+                    .map(|e| e.into_path())
+                    .collect::<Vec<_>>()
+            })
             .filter_map(|path| match is_rodio_supported(&path) {
                 Ok(true) => Some(path),
                 _ => None,
