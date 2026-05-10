@@ -16,12 +16,12 @@ pub async fn handle_internal_event(
     match event {
         InternalEvent::TrackEnded => {
             log::debug!("{:?} Received", event);
-            match orchestrator.queue.loop_mode {
+            match orchestrator.loop_mode() {
                 LoopMode::None => {
                     if orchestrator.next().await? {
                         let events = [
-                            ServerEvent::SendPlayerSnapshot(orchestrator.playback.get_snapshot()),
-                            ServerEvent::SendQueue(orchestrator.queue.clone()),
+                            ServerEvent::SendPlayerSnapshot(orchestrator.get_player_snapshot()),
+                            ServerEvent::SendQueue(orchestrator.clone_queue()),
                         ];
                         for e in events {
                             let _ = connection_tx.send(serde_json::to_string(&e)?);
@@ -30,14 +30,12 @@ pub async fn handle_internal_event(
                 }
                 LoopMode::Track => orchestrator.rewind()?,
                 LoopMode::Queue => {
-                    if orchestrator.queue.current_track.is_some() {
-                        orchestrator.queue.restart();
+                    if orchestrator.get_current_track().is_some() {
+                        orchestrator.restart_queue();
                         if orchestrator.next().await? {
                             let events = [
-                                ServerEvent::SendPlayerSnapshot(
-                                    orchestrator.playback.get_snapshot(),
-                                ),
-                                ServerEvent::SendQueue(orchestrator.queue.clone()),
+                                ServerEvent::SendPlayerSnapshot(orchestrator.get_player_snapshot()),
+                                ServerEvent::SendQueue(orchestrator.clone_queue()),
                             ];
                             for e in events {
                                 let _ = connection_tx.send(serde_json::to_string(&e)?);

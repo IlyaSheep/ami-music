@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     path::Path,
     sync::{
         Arc,
@@ -8,9 +9,11 @@ use std::{
 };
 
 use ami_core::{
+    config::LibraryConfig,
     library::{Library, TrackId},
-    player::Playback,
-    queue::Queue,
+    player::{Playback, playback_snapshot::PlayerSnapshot},
+    queue::{Queue, loop_mode::LoopMode},
+    track::Track,
 };
 use anyhow::Result;
 use rodio::{Player, source::EmptyCallback};
@@ -19,10 +22,10 @@ use tokio::sync::{broadcast, mpsc::UnboundedSender};
 use crate::{events::ServerEvent, internal_events::InternalEvent};
 
 pub struct Orchestrator {
-    pub playback: Arc<Playback>,
-    pub queue: Queue,
-    pub library: Library,
-    pub internal_event_tx: UnboundedSender<InternalEvent>,
+    playback: Arc<Playback>,
+    queue: Queue,
+    library: Library,
+    internal_event_tx: UnboundedSender<InternalEvent>,
 }
 
 impl Orchestrator {
@@ -59,6 +62,41 @@ impl Orchestrator {
         Ok(())
     }
 
+    pub fn play(&self) -> Result<()> {
+        if self.queue.current_track.is_some() && self.playback.player.empty() {
+            self.rewind()?;
+        }
+
+        self.playback.play();
+
+        Ok(())
+    }
+
+    pub fn pause(&self) {
+        self.playback.pause();
+    }
+
+    pub fn toggle_play(&self) -> Result<()> {
+        if self.queue.current_track.is_some() && self.playback.player.empty() {
+            self.rewind()?;
+            self.playback.play();
+        } else {
+            self.playback.toggle_play();
+        }
+
+        Ok(())
+    }
+
+    pub fn set_position(&self, pos: Duration) -> Result<()> {
+        self.playback.set_position(pos)?;
+        Ok(())
+    }
+
+    pub fn seek(&self, offset_seconds: i64) -> Result<()> {
+        self.playback.seek(offset_seconds)?;
+        Ok(())
+    }
+
     pub fn rewind(&self) -> Result<()> {
         if let Some(track) = self.queue.current_track.as_ref() {
             self.playback.player.clear();
@@ -66,6 +104,18 @@ impl Orchestrator {
         }
 
         Ok(())
+    }
+
+    pub fn increase_volume(&self, step: f32) {
+        self.playback.increase_volume(step);
+    }
+
+    pub fn decrease_volume(&self, step: f32) {
+        self.playback.decrease_volume(step);
+    }
+
+    pub fn set_volume(&self, value: f32) {
+        self.playback.set_volume(value);
     }
 
     pub async fn send_player_position(
@@ -82,6 +132,10 @@ impl Orchestrator {
         }
     }
 
+    pub fn get_player_snapshot(&self) -> PlayerSnapshot {
+        self.playback.get_snapshot()
+    }
+
     pub async fn enqueue(&mut self, id: TrackId) -> Result<()> {
         if let Some(track) = self.library.tracks.get(&id).cloned() {
             self.queue.enqueue(track.clone());
@@ -89,6 +143,8 @@ impl Orchestrator {
             if self.queue.current_track.is_none() {
                 self.next().await?;
             } else if self.queue.current_track.is_some() && self.playback.player.empty() {
+                self.next().await?;
+            } else if self.playback.player.empty() {
                 self.next().await?;
             }
         }
@@ -104,6 +160,13 @@ impl Orchestrator {
 
     pub fn dequeue(&mut self, index: usize) {
         self.queue.dequeue(index);
+    }
+
+    pub async fn play_now(&mut self, track_id: TrackId) -> Result<()> {
+        self.prepend(track_id);
+        self.next().await?;
+
+        Ok(())
     }
 
     pub async fn next(&mut self) -> Result<bool> {
@@ -137,5 +200,41 @@ impl Orchestrator {
 
     pub fn clear(&mut self) {
         self.queue.clear();
+    }
+
+    pub fn set_loop_mode(&mut self, loop_mode: LoopMode) {
+        self.queue.loop_mode = loop_mode;
+    }
+
+    pub fn loop_mode(&self) -> LoopMode {
+        self.queue.loop_mode
+    }
+
+    pub fn cycle_loop_mode(&mut self) {
+        self.queue.cycle_loop_mode();
+    }
+
+    pub fn get_current_track(&mut self) -> Option<Arc<Track>> {
+        self.queue.current_track.clone()
+    }
+
+    pub fn restart_queue(&mut self) {
+        self.queue.restart();
+    }
+
+    pub fn clone_queue(&self) -> Queue {
+        self.queue.clone()
+    }
+
+    pub fn clone_library(&self) -> HashMap<TrackId, Arc<Track>> {
+        self.library.tracks.clone()
+    }
+
+    pub fn clone_player_arc(&self) -> Arc<Player> {
+        self.playback.player.clone()
+    }
+
+    pub fn load_library_config(&mut self, library_config: LibraryConfig) {
+        self.library.load(library_config);
     }
 }
