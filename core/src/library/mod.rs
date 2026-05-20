@@ -19,6 +19,10 @@ impl TrackId {
     pub fn decrement(&mut self) {
         self.0 -= 1;
     }
+
+    pub fn as_u64(&self) -> u64 {
+        self.0
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

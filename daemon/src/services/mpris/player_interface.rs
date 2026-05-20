@@ -56,12 +56,18 @@ impl PlayerInterface for Mpris {
         Ok(())
     }
 
-    async fn set_position(&self, _track_id: TrackId, position: Time) -> fdo::Result<()> {
-        let _ = self
-            .command_tx
-            .send(Command::Playback(PlaybackCommand::SetPosition(
-                Duration::from_micros(position.as_micros() as u64),
-            )));
+    async fn set_position(&self, track_id: TrackId, position: Time) -> fdo::Result<()> {
+        let orchestrator = self.shared_state.read().await;
+        if let Some(id) = orchestrator.current_metadata().unwrap().trackid()
+            && id == track_id
+        {
+            let _ = self
+                .command_tx
+                .send(Command::Playback(PlaybackCommand::SetPosition(
+                    Duration::from_micros(position.as_micros() as u64),
+                )));
+        }
+
         Ok(())
     }
     async fn position(&self) -> fdo::Result<Time> {
@@ -124,7 +130,7 @@ impl PlayerInterface for Mpris {
     async fn metadata(&self) -> fdo::Result<Metadata> {
         let orchestrator = self.shared_state.read().await;
 
-        Ok(orchestrator.current_metadata())
+        Ok(orchestrator.current_metadata().unwrap())
     }
 
     async fn volume(&self) -> fdo::Result<Volume> {

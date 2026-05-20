@@ -25,7 +25,10 @@ use crate::{
     app::MprisServer,
     events::ServerEvent,
     internal_events::InternalEvent,
-    services::{COVER_ADDR, mpris::Mpris},
+    services::{
+        COVER_ADDR,
+        mpris::{BUS_NAME, Mpris},
+    },
 };
 
 pub struct Orchestrator {
@@ -246,7 +249,7 @@ impl Orchestrator {
                     .read()
                     .await
                     .properties_changed([
-                        Property::Metadata(self.current_metadata()),
+                        Property::Metadata(self.current_metadata()?),
                         Property::CanPlay(true),
                         Property::CanPause(true),
                         Property::CanSeek(true),
@@ -295,7 +298,7 @@ impl Orchestrator {
         self.queue.current_track.clone()
     }
 
-    pub fn current_metadata(&self) -> Metadata {
+    pub fn current_metadata(&self) -> Result<Metadata> {
         if let Some(track) = self.current_track() {
             let mut m = Metadata::new();
             m.set_title(Some(track.metadata.title.clone()));
@@ -313,10 +316,15 @@ impl Orchestrator {
             m.set_length(Some(Time::from_millis(
                 track.properties.duration.as_millis() as i64,
             )));
+            m.set_trackid(Some(mpris_server::TrackId::try_from(format!(
+                "/org/mpris/MediaPlayer2/{}/track/{}",
+                BUS_NAME,
+                track.id.as_u64()
+            ))?));
 
-            m
+            Ok(m)
         } else {
-            Metadata::new()
+            Ok(Metadata::new())
         }
     }
 

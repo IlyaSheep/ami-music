@@ -13,7 +13,7 @@ use crate::{
 pub mod player_interface;
 pub mod root_interface;
 
-const BUS_NAME: &str = "AmiMusic";
+pub const BUS_NAME: &str = "AmiMusic";
 
 pub struct Mpris {
     pub shared_state: SharedState,
