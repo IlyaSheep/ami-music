@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use crate::{queue::Queue, track::Track};
+use crate::{library::TrackId, queue::Queue, track::Track};
 
 #[test]
 fn next() {
@@ -8,8 +8,14 @@ fn next() {
     let pathbuf_1 = PathBuf::from("../test_assets/test.flac");
     let pathbuf_2 = PathBuf::from("../test_assets/test1.flac");
 
-    queue.enqueue(Arc::new(Track::new(pathbuf_1.as_path()).unwrap()));
-    queue.enqueue(Arc::new(Track::new(pathbuf_2.as_path()).unwrap()));
+    let mut id = TrackId::default();
+    queue.enqueue(Arc::new(
+        Track::new(pathbuf_1.as_path(), id.clone()).unwrap(),
+    ));
+    id.increment();
+    queue.enqueue(Arc::new(
+        Track::new(pathbuf_2.as_path(), id.clone()).unwrap(),
+    ));
 
     assert!(queue.next());
     assert_eq!(queue.current_track.as_ref().unwrap().pathbuf, pathbuf_1);
@@ -28,8 +34,14 @@ fn prev() {
     let pathbuf_1 = PathBuf::from("../test_assets/test.flac");
     let pathbuf_2 = PathBuf::from("../test_assets/test1.flac");
 
-    queue.enqueue(Arc::new(Track::new(pathbuf_1.as_path()).unwrap()));
-    queue.enqueue(Arc::new(Track::new(pathbuf_2.as_path()).unwrap()));
+    let mut id = TrackId::default();
+    queue.enqueue(Arc::new(
+        Track::new(pathbuf_1.as_path(), id.clone()).unwrap(),
+    ));
+    id.increment();
+    queue.enqueue(Arc::new(
+        Track::new(pathbuf_2.as_path(), id.clone()).unwrap(),
+    ));
 
     assert!(!queue.prev());
     assert!(queue.current_track.is_none());
@@ -47,8 +59,14 @@ fn prepend() {
     let pathbuf_1 = PathBuf::from("../test_assets/test.flac");
     let pathbuf_2 = PathBuf::from("../test_assets/test1.flac");
 
-    queue.enqueue(Arc::new(Track::new(pathbuf_1.as_path()).unwrap()));
-    queue.prepend_queue(Arc::new(Track::new(pathbuf_2.as_path()).unwrap()));
+    let mut id = TrackId::default();
+    queue.enqueue(Arc::new(
+        Track::new(pathbuf_1.as_path(), id.clone()).unwrap(),
+    ));
+    id.increment();
+    queue.enqueue(Arc::new(
+        Track::new(pathbuf_2.as_path(), id.clone()).unwrap(),
+    ));
     queue.next();
     assert_eq!(queue.current_track.unwrap().pathbuf, pathbuf_2);
 }

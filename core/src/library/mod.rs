@@ -59,7 +59,7 @@ impl Library {
                 Ok(true) => Some(path),
                 _ => None,
             })
-            .filter_map(|path| Track::new(path.as_path()).ok())
+            .filter_map(|path| Track::new(path.as_path(), id).ok())
             .collect();
 
         let mut tracks = HashMap::new();
