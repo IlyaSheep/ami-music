@@ -63,12 +63,13 @@ impl Library {
                 Ok(true) => Some(path),
                 _ => None,
             })
-            .filter_map(|path| Track::new(path.as_path(), id).ok())
+            .filter_map(|path| Track::new(path.as_path(), TrackId::default()).ok())
             .collect();
 
         let mut tracks = HashMap::new();
-        track_vec.into_iter().for_each(|t| {
+        track_vec.into_iter().for_each(|mut t| {
             id.increment();
+            t.id = id;
             tracks.insert(id, Arc::new(t));
         });
 
