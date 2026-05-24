@@ -265,9 +265,9 @@ impl Orchestrator {
         if let Some(track) = self.library.tracks.get(&id).cloned() {
             self.queue.enqueue(track.clone());
             log::debug!("Called Orchestrator::enqueue");
-            if self.queue.current_track.is_none() {
+            if self.current_track().is_none() {
                 self.next(mpris_server).await?;
-            } else if self.queue.current_track.is_some() && self.playback.player.empty() {
+            } else if self.current_track().is_some() && self.playback.player.empty() {
                 self.next(mpris_server).await?;
             } else if self.playback.player.empty() {
                 self.next(mpris_server).await?;
@@ -280,9 +280,9 @@ impl Orchestrator {
     pub async fn prepend(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {
         if let Some(track) = self.library.tracks.get(&id) {
             self.queue.prepend_queue(track.clone());
-            if self.queue.current_track.is_none() {
+            if self.current_track().is_none() {
                 self.next(mpris_server).await?;
-            } else if self.queue.current_track.is_some() && self.playback.player.empty() {
+            } else if self.current_track().is_some() && self.playback.player.empty() {
                 self.next(mpris_server).await?;
             } else if self.playback.player.empty() {
                 self.next(mpris_server).await?;
@@ -352,7 +352,7 @@ impl Orchestrator {
         {
             self.playback.player.clear();
             self.load_track(&track.pathbuf)?;
-            self.playback.play();
+            self.play(mpris_server).await?;
             if let Some(mpris_server) = mpris_server {
                 mpris_server
                     .read()
@@ -391,7 +391,7 @@ impl Orchestrator {
                 .read()
                 .await
                 .properties_changed([Property::LoopStatus(Mpris::match_loop_status(
-                    self.queue.loop_mode,
+                    self.loop_mode(),
                 ))])
                 .await?;
         }
@@ -410,7 +410,7 @@ impl Orchestrator {
                 .read()
                 .await
                 .properties_changed([Property::LoopStatus(Mpris::match_loop_status(
-                    self.queue.loop_mode,
+                    self.loop_mode(),
                 ))])
                 .await?;
         }
