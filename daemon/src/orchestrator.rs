@@ -16,7 +16,7 @@ use ami_core::{
     track::Track,
 };
 use anyhow::Result;
-use mpris_server::{Metadata, Property, Time};
+use mpris_server::{Metadata, Property, Signal, Time};
 use rodio::{Player, source::EmptyCallback};
 use tokio::sync::{broadcast, mpsc::UnboundedSender};
 use url::Url;
@@ -74,7 +74,7 @@ impl Orchestrator {
 
     pub async fn play(&self, mpris_server: &Option<MprisServer>) -> Result<()> {
         if self.queue.current_track.is_some() && self.playback.player.empty() {
-            self.rewind()?;
+            self.rewind(mpris_server).await?;
         }
 
         self.playback.play();
@@ -108,7 +108,7 @@ impl Orchestrator {
 
     pub async fn toggle_play(&self, mpris_server: &Option<MprisServer>) -> Result<()> {
         if self.queue.current_track.is_some() && self.playback.player.empty() {
-            self.rewind()?;
+            self.rewind(mpris_server).await?;
             self.playback.play();
         } else {
             self.playback.toggle_play();
@@ -126,39 +126,109 @@ impl Orchestrator {
         Ok(())
     }
 
-    pub fn set_position(&self, pos: Duration) -> Result<()> {
+    pub async fn set_position(
+        &self,
+        pos: Duration,
+        mpris_server: &Option<MprisServer>,
+    ) -> Result<()> {
         self.playback.set_position(pos)?;
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .emit(Signal::Seeked {
+                    position: Time::from_micros(self.player_position().as_micros() as i64),
+                })
+                .await?
+        }
         Ok(())
     }
 
-    pub fn seek(&self, offset_seconds: i64) -> Result<()> {
+    pub async fn seek(
+        &self,
+        offset_seconds: i64,
+        mpris_server: &Option<MprisServer>,
+    ) -> Result<()> {
         self.playback.seek(offset_seconds)?;
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .emit(Signal::Seeked {
+                    position: Time::from_micros(self.player_position().as_micros() as i64),
+                })
+                .await?
+        }
         Ok(())
     }
 
-    pub fn rewind(&self) -> Result<()> {
+    pub async fn rewind(&self, mpris_server: &Option<MprisServer>) -> Result<()> {
         if let Some(track) = self.queue.current_track.as_ref() {
             self.playback.player.clear();
             self.load_track(&track.pathbuf)?;
+            if let Some(mpris_server) = mpris_server {
+                mpris_server
+                    .read()
+                    .await
+                    .emit(Signal::Seeked {
+                        position: Time::from_micros(self.player_position().as_micros() as i64),
+                    })
+                    .await?
+            }
         }
 
         Ok(())
     }
 
-    pub fn increase_volume(&self, step: f32) {
+    pub async fn increase_volume(
+        &self,
+        step: f32,
+        mpris_server: &Option<MprisServer>,
+    ) -> Result<()> {
         self.playback.increase_volume(step);
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .properties_changed([Property::Volume(self.volume() as f64)])
+                .await?
+        }
+
+        Ok(())
     }
 
-    pub fn decrease_volume(&self, step: f32) {
+    pub async fn decrease_volume(
+        &self,
+        step: f32,
+        mpris_server: &Option<MprisServer>,
+    ) -> Result<()> {
         self.playback.decrease_volume(step);
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .properties_changed([Property::Volume(self.volume() as f64)])
+                .await?
+        }
+
+        Ok(())
     }
 
     pub fn volume(&self) -> f32 {
         self.playback.volume()
     }
 
-    pub fn set_volume(&self, value: f32) {
+    pub async fn set_volume(&self, value: f32, mpris_server: &Option<MprisServer>) -> Result<()> {
         self.playback.set_volume(value);
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .properties_changed([Property::Volume(self.volume() as f64)])
+                .await?
+        }
+
+        Ok(())
     }
 
     pub fn player_position(&self) -> Duration {
@@ -194,7 +264,6 @@ impl Orchestrator {
     pub async fn enqueue(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {
         if let Some(track) = self.library.tracks.get(&id).cloned() {
             self.queue.enqueue(track.clone());
-
             log::debug!("Called Orchestrator::enqueue");
             if self.queue.current_track.is_none() {
                 self.next(mpris_server).await?;
@@ -208,10 +277,19 @@ impl Orchestrator {
         Ok(())
     }
 
-    pub fn prepend(&mut self, id: TrackId) {
+    pub async fn prepend(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {
         if let Some(track) = self.library.tracks.get(&id) {
-            self.queue.prepend_queue(track.clone())
+            self.queue.prepend_queue(track.clone());
+            if self.queue.current_track.is_none() {
+                self.next(mpris_server).await?;
+            } else if self.queue.current_track.is_some() && self.playback.player.empty() {
+                self.next(mpris_server).await?;
+            } else if self.playback.player.empty() {
+                self.next(mpris_server).await?;
+            }
         }
+
+        Ok(())
     }
 
     pub fn dequeue(&mut self, index: usize) {
@@ -223,8 +301,12 @@ impl Orchestrator {
         track_id: TrackId,
         mpris_server: &Option<MprisServer>,
     ) -> Result<()> {
-        self.prepend(track_id);
-        self.next(mpris_server).await?;
+        if self.current_track().is_none() {
+            self.prepend(track_id, mpris_server).await?;
+        } else {
+            self.prepend(track_id, mpris_server).await?;
+            self.next(mpris_server).await?;
+        }
 
         Ok(())
     }
@@ -253,8 +335,10 @@ impl Orchestrator {
                         Property::CanPlay(true),
                         Property::CanPause(true),
                         Property::CanSeek(true),
+                        Property::CanGoNext(self.can_go_next()),
+                        Property::CanGoPrevious(self.can_go_prev()),
                     ])
-                    .await?
+                    .await?;
             }
             Ok(true)
         } else {
@@ -262,13 +346,27 @@ impl Orchestrator {
         }
     }
 
-    pub async fn prev(&mut self) -> Result<()> {
+    pub async fn prev(&mut self, mpris_server: &Option<MprisServer>) -> Result<()> {
         if self.queue.prev()
             && let Some(track) = self.queue.current_track.as_ref()
         {
             self.playback.player.clear();
             self.load_track(&track.pathbuf)?;
             self.playback.play();
+            if let Some(mpris_server) = mpris_server {
+                mpris_server
+                    .read()
+                    .await
+                    .properties_changed([
+                        Property::Metadata(self.current_metadata()?),
+                        Property::CanPlay(true),
+                        Property::CanPause(true),
+                        Property::CanSeek(true),
+                        Property::CanGoNext(self.can_go_next()),
+                        Property::CanGoPrevious(self.can_go_prev()),
+                    ])
+                    .await?;
+            }
         }
 
         Ok(())
@@ -282,16 +380,42 @@ impl Orchestrator {
         self.queue.clear();
     }
 
-    pub fn set_loop_mode(&mut self, loop_mode: LoopMode) {
+    pub async fn set_loop_mode(
+        &mut self,
+        loop_mode: LoopMode,
+        mpris_server: &Option<MprisServer>,
+    ) -> Result<()> {
         self.queue.loop_mode = loop_mode;
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .properties_changed([Property::LoopStatus(Mpris::match_loop_status(
+                    self.queue.loop_mode,
+                ))])
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub fn loop_mode(&self) -> LoopMode {
         self.queue.loop_mode
     }
 
-    pub fn cycle_loop_mode(&mut self) {
+    pub async fn cycle_loop_mode(&mut self, mpris_server: &Option<MprisServer>) -> Result<()> {
         self.queue.cycle_loop_mode();
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .properties_changed([Property::LoopStatus(Mpris::match_loop_status(
+                    self.queue.loop_mode,
+                ))])
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub fn current_track(&self) -> Option<Arc<Track>> {
@@ -330,8 +454,11 @@ impl Orchestrator {
         }
     }
 
-    pub fn restart_queue(&mut self) {
+    pub async fn restart_queue(&mut self, mpris_server: &Option<MprisServer>) -> Result<()> {
         self.queue.restart();
+        self.next(mpris_server).await?;
+
+        Ok(())
     }
 
     pub fn clone_queue(&self) -> Queue {

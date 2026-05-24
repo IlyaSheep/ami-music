@@ -29,10 +29,10 @@ pub async fn handle_internal_event(
                         }
                     }
                 }
-                LoopMode::Track => orchestrator.rewind()?,
+                LoopMode::Track => orchestrator.rewind(&mpris_server).await?,
                 LoopMode::Queue => {
                     if orchestrator.current_track().is_some() {
-                        orchestrator.restart_queue();
+                        orchestrator.restart_queue(&mpris_server).await?;
                         if orchestrator.next(&mpris_server).await? {
                             let events = [
                                 ServerEvent::SendPlayerSnapshot(orchestrator.get_player_snapshot()),
