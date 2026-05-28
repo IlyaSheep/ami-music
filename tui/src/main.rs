@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc, time::SystemTime};
+use std::{io, path::PathBuf, sync::Arc, time::SystemTime};
 
 use ami_core::{library::TrackId, track::Track};
 use ami_daemon::{
@@ -26,17 +26,23 @@ pub mod handler;
 pub mod state;
 pub mod ui;
 
-const DAEMON_URL: &str = "ws://0.0.0.0:7878";
-const COVER_URL: &str = "http://0.0.0.0:7879";
+const DAEMON_PORT: &str = "7878";
+const COVER_PORT: &str = "7879";
 
 #[tokio::main]
 async fn main() -> Result<()> {
     color_eyre::install()?;
     setup_logger()?;
 
-    match tokio_tungstenite::connect_async(DAEMON_URL).await {
+    let mut ip = String::new();
+    println!("Local IP of daemon> ");
+    io::stdin().read_line(&mut ip)?;
+    let daemon_addr = format!("ws://{}:{}", ip.trim(), DAEMON_PORT);
+    let cover_addr = format!("http://{}:{}", ip.trim(), COVER_PORT);
+
+    match tokio_tungstenite::connect_async(daemon_addr.clone()).await {
         Ok((ws, _)) => {
-            log::debug!("Connected to {DAEMON_URL}");
+            log::debug!("Connected to {}", daemon_addr.clone());
 
             let states = Arc::new(Mutex::new(DaemonStates::default()));
             let terminal = ratatui::init();
@@ -45,12 +51,18 @@ async fn main() -> Result<()> {
 
             let app = App::new(states.clone(), tx);
 
-            tokio::spawn(connect(ws, rx, states, app.image_picker.clone()));
+            tokio::spawn(connect(
+                ws,
+                rx,
+                states,
+                app.image_picker.clone(),
+                cover_addr.clone(),
+            ));
             let result = app.run(terminal).await;
             result
         }
         Err(e) => {
-            eprintln!("Error connecting to {}.\n[{}]", DAEMON_URL, e);
+            eprintln!("Error connecting to {}.\n[{}]", daemon_addr.clone(), e);
             Ok(())
         }
     }
@@ -61,6 +73,7 @@ async fn connect(
     mut rx: UnboundedReceiver<Command>,
     states: Arc<Mutex<DaemonStates>>,
     image_picker: Arc<Picker>,
+    cover_addr: String,
 ) -> Result<()> {
     let (mut ws_sink, mut ws_stream) = ws.split();
 
@@ -119,7 +132,7 @@ async fn connect(
                                                 if let Some(cover_art_path) = current_track.metadata.cover_art_path.as_ref() {
                                                     locked_states.cover_art = None;
                                                     if let Some(filename) = cover_art_path.file_name().and_then(|s| s.to_str()) {
-                                                        let url = Url::parse(&format!("{}/{}", COVER_URL, filename))?;
+                                                        let url = Url::parse(&format!("{}/{}", cover_addr, filename))?;
                                                         let picker = image_picker.clone();
                                                         tokio::spawn(async move {
                                                             if let Ok(Some(protocol)) = CoverArt::parse_cover_art(url, picker).await {
