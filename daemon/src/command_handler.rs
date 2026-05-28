@@ -115,7 +115,13 @@ pub async fn handle_queue_command(
                 .prepend(track_id, mpris_server)
                 .await?
         }
-        QueueCommand::Dequeue { index } => shared_state.write().await.dequeue(index),
+        QueueCommand::Dequeue { index } => {
+            shared_state
+                .write()
+                .await
+                .dequeue(index, mpris_server)
+                .await?
+        }
         QueueCommand::PlayNow { track_id } => {
             shared_state
                 .write()

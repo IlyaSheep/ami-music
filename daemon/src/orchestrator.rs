@@ -265,6 +265,15 @@ impl Orchestrator {
         if let Some(track) = self.library.tracks.get(&id).cloned() {
             self.queue.enqueue(track.clone());
             log::debug!("Called Orchestrator::enqueue");
+
+            if let Some(mpris_server) = mpris_server {
+                mpris_server
+                    .read()
+                    .await
+                    .properties_changed([Property::CanGoNext(self.can_go_next())])
+                    .await?;
+            }
+
             if self.current_track().is_none() {
                 self.next(mpris_server).await?;
             } else if self.current_track().is_some() && self.playback.player.empty() {
@@ -280,6 +289,15 @@ impl Orchestrator {
     pub async fn prepend(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {
         if let Some(track) = self.library.tracks.get(&id) {
             self.queue.prepend_queue(track.clone());
+
+            if let Some(mpris_server) = mpris_server {
+                mpris_server
+                    .read()
+                    .await
+                    .properties_changed([Property::CanGoNext(self.can_go_next())])
+                    .await?;
+            }
+
             if self.current_track().is_none() {
                 self.next(mpris_server).await?;
             } else if self.current_track().is_some() && self.playback.player.empty() {
@@ -292,8 +310,21 @@ impl Orchestrator {
         Ok(())
     }
 
-    pub fn dequeue(&mut self, index: usize) {
+    pub async fn dequeue(
+        &mut self,
+        index: usize,
+        mpris_server: &Option<MprisServer>,
+    ) -> Result<()> {
         self.queue.dequeue(index);
+        if let Some(mpris_server) = mpris_server {
+            mpris_server
+                .read()
+                .await
+                .properties_changed([Property::CanGoNext(self.can_go_next())])
+                .await?;
+        }
+
+        Ok(())
     }
 
     pub async fn play_now(
