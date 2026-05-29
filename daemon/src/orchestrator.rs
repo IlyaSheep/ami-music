@@ -12,7 +12,7 @@ use ami_core::{
     config::LibraryConfig,
     library::{Library, TrackId},
     player::{Playback, playback_snapshot::PlayerSnapshot, playback_status::PlaybackStatus},
-    queue::{Queue, loop_mode::LoopMode},
+    queue::{Queue, loop_mode::LoopMode, queue_snapshot::QueueSnapshot},
     track::Track,
 };
 use anyhow::Result;
@@ -259,6 +259,10 @@ impl Orchestrator {
 
     pub fn get_player_snapshot(&self) -> PlayerSnapshot {
         self.playback.get_snapshot()
+    }
+
+    pub fn get_queue_snapshot(&self) -> QueueSnapshot {
+        self.queue.get_snapshot()
     }
 
     pub async fn enqueue(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {

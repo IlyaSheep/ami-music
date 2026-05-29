@@ -22,7 +22,7 @@ pub async fn handle_internal_event(
                     if orchestrator.next(&mpris_server).await? {
                         let events = [
                             ServerEvent::SendPlayerSnapshot(orchestrator.get_player_snapshot()),
-                            ServerEvent::SendQueue(orchestrator.clone_queue()),
+                            ServerEvent::SendQueue(orchestrator.get_queue_snapshot()),
                         ];
                         for e in events {
                             let _ = connection_tx.send(serde_json::to_string(&e)?);
@@ -36,7 +36,7 @@ pub async fn handle_internal_event(
                         if orchestrator.next(&mpris_server).await? {
                             let events = [
                                 ServerEvent::SendPlayerSnapshot(orchestrator.get_player_snapshot()),
-                                ServerEvent::SendQueue(orchestrator.clone_queue()),
+                                ServerEvent::SendQueue(orchestrator.get_queue_snapshot()),
                             ];
                             for e in events {
                                 let _ = connection_tx.send(serde_json::to_string(&e)?);

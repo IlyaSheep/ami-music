@@ -152,7 +152,7 @@ pub async fn handle_queue_command(
         QueueCommand::Fetch => {}
     };
 
-    let event = ServerEvent::SendQueue(shared_state.read().await.clone_queue());
+    let event = ServerEvent::SendQueue(shared_state.read().await.get_queue_snapshot());
     let json = serde_json::to_string(&event)?;
     let _ = tx.send(json);
 
