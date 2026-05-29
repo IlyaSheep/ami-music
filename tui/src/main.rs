@@ -1,10 +1,11 @@
-use std::{io, path::PathBuf, sync::Arc, time::SystemTime};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
 use ami_core::{library::TrackId, track::Track};
 use ami_daemon::{
     commands::{Command, LibraryCommand, PlaybackCommand, QueueCommand},
     events::ServerEvent,
 };
+use clap::Parser;
 use color_eyre::eyre::Result;
 use futures::{SinkExt, StreamExt};
 use ratatui_image::picker::Picker;
@@ -18,9 +19,10 @@ use tokio::{
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use url::Url;
 
-use crate::{app::App, state::DaemonStates, ui::cover_art::CoverArt};
+use crate::{app::App, cli::Cli, state::DaemonStates, ui::cover_art::CoverArt};
 
 pub mod app;
+pub mod cli;
 pub mod event;
 pub mod handler;
 pub mod state;
@@ -34,9 +36,9 @@ async fn main() -> Result<()> {
     color_eyre::install()?;
     setup_logger()?;
 
-    let mut ip = String::new();
-    println!("Local IP of daemon> ");
-    io::stdin().read_line(&mut ip)?;
+    let cli = Cli::parse();
+    let ip = cli.address;
+
     let daemon_addr = format!("ws://{}:{}", ip.trim(), DAEMON_PORT);
     let cover_addr = format!("http://{}:{}", ip.trim(), COVER_PORT);
 
