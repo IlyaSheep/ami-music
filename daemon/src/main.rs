@@ -1,18 +1,18 @@
-use ami_daemon::{app::App, daemon_process, logging::setup_logger};
+use ami_daemon::{
+    app::App,
+    cli::{Cli, CliCommand},
+    daemon_process,
+    logging::setup_logger,
+};
 use anyhow::Result;
-
-// How many messages the broadcast channel can buffer
+use clap::Parser;
 
 fn main() -> Result<()> {
-    let args: Vec<String> = std::env::args().collect();
-    match args.get(1).map(String::as_str) {
-        Some("start") => return daemon_process::handle_start(),
-        Some("stop") => return daemon_process::handle_stop(),
-        Some("_run") | None => {}
-        Some(other) => {
-            eprintln!("Unknown command: {other}");
-            return Ok(());
-        }
+    let cli = Cli::parse();
+    match cli.command {
+        CliCommand::Start => return daemon_process::handle_start(),
+        CliCommand::Stop => return daemon_process::handle_stop(),
+        CliCommand::Run | CliCommand::Debug => {}
     }
     setup_logger()?;
     let app = App::new()?;

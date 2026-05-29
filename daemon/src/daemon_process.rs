@@ -18,7 +18,7 @@ pub fn handle_start() -> Result<()> {
     }
 
     let child = process::Command::new(std::env::current_exe()?)
-        .arg("_run")
+        .arg("run")
         .stdin(process::Stdio::null())
         .stdout(process::Stdio::null())
         .stderr(process::Stdio::null())

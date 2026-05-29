@@ -1,4 +1,5 @@
 pub mod app;
+pub mod cli;
 pub mod command_handler;
 pub mod commands;
 pub mod daemon_process;
