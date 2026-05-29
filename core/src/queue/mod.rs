@@ -2,17 +2,19 @@ use std::{collections::VecDeque, sync::Arc};
 
 use rand::{rng, seq::SliceRandom};
 use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 
-use crate::{queue::loop_mode::LoopMode, track::Track};
+use crate::{
+    queue::{loop_mode::LoopMode, queue_snapshot::QueueSnapshot},
+    track::Track,
+};
 
 #[cfg(test)]
 pub mod tests;
 
 pub mod loop_mode;
+pub mod queue_snapshot;
 /// Struct to act as a queue of tracks.
-#[derive(Default, Debug, Serialize, Deserialize, Clone, TS)]
-#[ts(export, export_to = "queue.ts")]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Queue {
     pub loop_mode: LoopMode,
     pub current_track: Option<Arc<Track>>,
@@ -110,5 +112,18 @@ impl Queue {
             LoopMode::Queue => LoopMode::Track,
             LoopMode::Track => LoopMode::None,
         };
+    }
+
+    pub fn get_snapshot(&self) -> QueueSnapshot {
+        QueueSnapshot {
+            loop_mode: self.loop_mode,
+            current_track: self.current_track.as_ref().map(|arc| (**arc).clone()),
+            previous_tracks: self
+                .previous_tracks
+                .iter()
+                .map(|arc| (**arc).clone())
+                .collect(),
+            next_tracks: self.next_tracks.iter().map(|arc| (**arc).clone()).collect(),
+        }
     }
 }
