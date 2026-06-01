@@ -68,7 +68,7 @@ fn prepend() {
         Track::new(pathbuf_1.as_path(), id.clone()).unwrap(),
     ));
     id.increment();
-    queue.enqueue(Arc::new(
+    queue.prepend_queue(Arc::new(
         Track::new(pathbuf_2.as_path(), id.clone()).unwrap(),
     ));
     queue.next();
