@@ -9,6 +9,9 @@ use crate::{config::LibraryConfig, library::helper::is_rodio_supported, track::T
 
 pub mod helper;
 
+#[cfg(test)]
+pub mod tests;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, TS)]
 #[ts(export, export_to = "track_id.ts")]
 pub struct TrackId(u64);

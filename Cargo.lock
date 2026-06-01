@@ -85,6 +85,7 @@ dependencies = [
  "rayon",
  "rodio",
  "serde",
+ "tempfile",
  "tokio",
  "toml",
  "ts-rs",
