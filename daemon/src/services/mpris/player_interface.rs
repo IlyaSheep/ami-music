@@ -58,7 +58,8 @@ impl PlayerInterface for Mpris {
 
     async fn set_position(&self, track_id: TrackId, position: Time) -> fdo::Result<()> {
         let orchestrator = self.shared_state.read().await;
-        if let Some(id) = orchestrator.current_metadata().unwrap().trackid()
+        if let Ok(metadata) = orchestrator.current_metadata()
+            && let Some(id) = metadata.trackid()
             && id == track_id
         {
             let _ = self
@@ -90,12 +91,8 @@ impl PlayerInterface for Mpris {
 
     async fn loop_status(&self) -> fdo::Result<LoopStatus> {
         let orchestrator = self.shared_state.read().await;
-        let status = match orchestrator.loop_mode() {
-            loop_mode::LoopMode::None => LoopStatus::None,
-            loop_mode::LoopMode::Queue => LoopStatus::Playlist,
-            loop_mode::LoopMode::Track => LoopStatus::Track,
-        };
-        Ok(status)
+
+        Ok(Mpris::match_loop_status(orchestrator.loop_mode()))
     }
 
     async fn set_loop_status(&self, loop_status: LoopStatus) -> zbus::Result<()> {

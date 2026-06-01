@@ -1,11 +1,16 @@
-use std::{fs::create_dir_all, path::PathBuf};
+use std::{fs::create_dir_all, io, path::PathBuf};
 
 use anyhow::Result;
 
 use crate::APP_NAME;
 
 pub fn get_cache_path() -> Result<PathBuf> {
-    let path = dirs::cache_dir().unwrap().join(APP_NAME);
+    let path = dirs::cache_dir()
+        .ok_or(io::Error::new(
+            io::ErrorKind::NotFound,
+            "cache directory not found",
+        ))?
+        .join(APP_NAME);
     if !path.exists() {
         create_dir_all(&path)?;
     }

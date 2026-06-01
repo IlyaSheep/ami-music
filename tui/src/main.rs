@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc, time::SystemTime};
+use std::{fs::create_dir_all, sync::Arc, time::SystemTime};
 
 use ami_core::{library::TrackId, track::Track};
 use ami_daemon::{
@@ -6,7 +6,7 @@ use ami_daemon::{
     events::ServerEvent,
 };
 use clap::Parser;
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{ContextCompat, Result};
 use futures::{SinkExt, StreamExt};
 use ratatui_image::picker::Picker;
 use tokio::{
@@ -174,7 +174,14 @@ async fn connect(
 }
 
 pub fn setup_logger() -> Result<()> {
-    let log_path = PathBuf::from("ami-term.log");
+    let data_dir = dirs::data_dir().context("Failed to get DATA DIR.")?;
+
+    let log_path = data_dir.join("ami-music").join("ami-term.log");
+    if !log_path.exists() {
+        if let Some(parent) = log_path.parent() {
+            create_dir_all(parent)?;
+        }
+    }
 
     fern::Dispatch::new()
         .format(|out, message, record| {

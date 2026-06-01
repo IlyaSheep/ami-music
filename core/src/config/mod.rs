@@ -1,5 +1,6 @@
 use std::{
     fs::{self, create_dir_all},
+    io,
     path::{Path, PathBuf},
 };
 
@@ -21,7 +22,11 @@ pub struct LibraryConfig {
 impl Config {
     pub fn load() -> Result<Self> {
         let path = dirs::config_dir()
-            .unwrap()
+            .ok_or(io::Error::new(
+                io::ErrorKind::NotFound,
+                "config directory not found",
+            ))?
+            .join("ami-music")
             .join(format!("{}.toml", APP_NAME));
 
         if !path.exists() {
@@ -32,7 +37,10 @@ impl Config {
     }
 
     fn write_default_config(path: &Path) -> Result<()> {
-        let audio_dir = dirs::audio_dir().unwrap();
+        let audio_dir = dirs::audio_dir().ok_or(io::Error::new(
+            io::ErrorKind::NotFound,
+            "audio directory not found",
+        ))?;
         let config = format!(
             r#"[library]
         directories = [

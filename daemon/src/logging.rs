@@ -1,9 +1,13 @@
-use std::{path::PathBuf, time::SystemTime};
+use std::{fs::create_dir_all, time::SystemTime};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 pub fn setup_logger() -> Result<()> {
-    let log_path = PathBuf::from("ami-daemon.log");
+    let data_dir = dirs::data_dir().context("Failed to get DATA DIR.")?;
+    let log_path = data_dir.join("ami-music").join("ami-daemon.log");
+    if let Some(parent) = log_path.parent() {
+        create_dir_all(parent)?;
+    }
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -22,7 +26,10 @@ pub fn setup_logger() -> Result<()> {
         .level_for("symphonia", log::LevelFilter::Error)
         .level_for("symphonia_core", log::LevelFilter::Error)
         .level_for("symphonia_format_ogg", log::LevelFilter::Error)
-        .chain(fern::log_file(log_path)?)
+        .chain(
+            fern::log_file(&log_path)
+                .with_context(|| format!("Failed to open log file: {:?}", log_path))?,
+        )
         .apply()?;
     Ok(())
 }
