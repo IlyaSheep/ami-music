@@ -2,7 +2,7 @@ pub mod cache;
 pub mod config;
 pub mod library;
 pub mod player;
-pub mod playlist;
+pub mod playlist_manager;
 pub mod queue;
 pub mod track;
 
