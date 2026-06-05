@@ -1,4 +1,10 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{
+    collections::HashMap,
+    hash::{DefaultHasher, Hash, Hasher},
+    ops::Deref,
+    path::Path,
+    sync::Arc,
+};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
@@ -12,45 +18,37 @@ pub mod helper;
 #[cfg(test)]
 pub mod tests;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, TS)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
 #[ts(export, export_to = "track_id.ts")]
-pub struct TrackId(u64);
+pub struct TrackId(pub u64);
 
 impl TrackId {
-    pub fn increment(&mut self) {
-        self.0 += 1;
-    }
-
-    pub fn decrement(&mut self) {
-        self.0 -= 1;
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        self.0
+    pub fn from_path(path: &Path) -> TrackId {
+        let mut h = DefaultHasher::new();
+        path.hash(&mut h);
+        TrackId(h.finish())
     }
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseTrackIdError;
 
-impl FromStr for TrackId {
-    type Err = ParseTrackIdError;
+impl Deref for TrackId {
+    type Target = u64;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(TrackId(s.parse::<u64>().map_err(|_| ParseTrackIdError)?))
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct Library {
-    pub tracks: HashMap<TrackId, Arc<Track>>,
+    pub track_map: HashMap<TrackId, Arc<Track>>,
 }
 
 impl Library {
     pub fn load(&mut self, config: LibraryConfig) {
-        self.tracks.clear();
-
-        let mut id = TrackId::default();
+        self.track_map.clear();
 
         let track_vec: Vec<Track> = config
             .directories
@@ -68,16 +66,14 @@ impl Library {
                 Ok(true) => Some(path),
                 _ => None,
             })
-            .filter_map(|path| Track::new(path.as_path(), TrackId::default()).ok())
+            .filter_map(|path| Track::new(path.as_path()).ok())
             .collect();
 
-        let mut tracks = HashMap::new();
-        track_vec.into_iter().for_each(|mut t| {
-            id.increment();
-            t.id = id;
-            tracks.insert(id, Arc::new(t));
+        let mut track_map = HashMap::new();
+        track_vec.into_iter().for_each(|t| {
+            track_map.insert(t.id, Arc::new(t));
         });
 
-        self.tracks = tracks;
+        self.track_map = track_map;
     }
 }

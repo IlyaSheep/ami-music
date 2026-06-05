@@ -29,15 +29,15 @@ pub struct Track {
 }
 
 impl Track {
-    pub fn new(path: &Path, id: TrackId) -> Result<Self> {
-        let tagged_file = Probe::open(path)?
+    pub fn new(path: &Path) -> Result<Self> {
+        let tagged_file = Probe::open(&path)?
             .options(ParseOptions::new().read_cover_art(false))
             .read()?;
         Ok(Self {
             pathbuf: path.to_path_buf(),
             metadata: Self::parse_metadata(&path, &tagged_file)?,
             properties: Self::parse_properties(&tagged_file),
-            id,
+            id: TrackId::from_path(path),
         })
     }
 

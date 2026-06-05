@@ -267,7 +267,7 @@ impl Orchestrator {
 
     pub fn get_library_snapshot(&self) -> HashMap<TrackId, Track> {
         self.library
-            .tracks
+            .track_map
             .clone()
             .into_iter()
             .map(|(key, arc)| (key, (*arc).clone()))
@@ -275,7 +275,7 @@ impl Orchestrator {
     }
 
     pub async fn enqueue(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {
-        if let Some(track) = self.library.tracks.get(&id).cloned() {
+        if let Some(track) = self.library.track_map.get(&id).cloned() {
             self.queue.enqueue(track.clone());
             log::debug!("Called Orchestrator::enqueue");
 
@@ -300,7 +300,7 @@ impl Orchestrator {
     }
 
     pub async fn prepend(&mut self, id: TrackId, mpris_server: &Option<MprisServer>) -> Result<()> {
-        if let Some(track) = self.library.tracks.get(&id) {
+        if let Some(track) = self.library.track_map.get(&id) {
             self.queue.prepend_queue(track.clone());
 
             if let Some(mpris_server) = mpris_server {
@@ -493,8 +493,7 @@ impl Orchestrator {
             )));
             m.set_trackid(Some(mpris_server::TrackId::try_from(format!(
                 "/org/mpris/MediaPlayer2/{}/track/{}",
-                BUS_NAME,
-                track.id.as_u64()
+                BUS_NAME, *track.id
             ))?));
 
             Ok(m)

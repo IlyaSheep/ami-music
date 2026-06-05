@@ -1,12 +1,10 @@
 use std::{collections::VecDeque, sync::Arc};
 
-use rand::{rng, seq::SliceRandom};
-use serde::{Deserialize, Serialize};
-
 use crate::{
     queue::{loop_mode::LoopMode, queue_snapshot::QueueSnapshot},
     track::Track,
 };
+use rand::{rng, seq::SliceRandom};
 
 #[cfg(test)]
 pub mod tests;
@@ -14,7 +12,7 @@ pub mod tests;
 pub mod loop_mode;
 pub mod queue_snapshot;
 /// Struct to act as a queue of tracks.
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct Queue {
     pub loop_mode: LoopMode,
     pub current_track: Option<Arc<Track>>,
