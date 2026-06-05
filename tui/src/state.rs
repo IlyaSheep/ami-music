@@ -1,8 +1,9 @@
 use std::fmt::Debug;
 
 use ami_core::{
-    library::TrackId, player::playback_snapshot::PlayerSnapshot,
-    queue::queue_snapshot::QueueSnapshot, track::Track,
+    player::playback_snapshot::PlayerSnapshot,
+    queue::queue_snapshot::QueueSnapshot,
+    track::{Track, track_id::TrackId},
 };
 use ratatui_image::protocol::StatefulProtocol;
 

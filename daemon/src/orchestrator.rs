@@ -10,10 +10,10 @@ use std::{
 
 use ami_core::{
     config::LibraryConfig,
-    library::{Library, TrackId},
+    library::Library,
     player::{Playback, playback_snapshot::PlayerSnapshot, playback_status::PlaybackStatus},
     queue::{Queue, loop_mode::LoopMode, queue_snapshot::QueueSnapshot},
-    track::Track,
+    track::{Track, track_id::TrackId},
 };
 use anyhow::Result;
 use mpris_server::{Metadata, Property, Signal, Time};

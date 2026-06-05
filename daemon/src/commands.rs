@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use ami_core::{library::TrackId, queue::loop_mode::LoopMode};
+use ami_core::{queue::loop_mode::LoopMode, track::track_id::TrackId};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]

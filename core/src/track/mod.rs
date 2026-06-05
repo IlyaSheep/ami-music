@@ -1,5 +1,6 @@
 pub mod metadata;
 pub mod properties;
+pub mod track_id;
 
 use std::path::{Path, PathBuf};
 
@@ -13,10 +14,7 @@ use lofty::{
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::{
-    library::TrackId,
-    track::{metadata::Metadata, properties::Properties},
-};
+use crate::track::{metadata::Metadata, properties::Properties, track_id::TrackId};
 
 /// Stores necessary information about a track.
 #[derive(Serialize, Deserialize, Clone, Debug, TS)]

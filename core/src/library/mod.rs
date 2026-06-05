@@ -1,45 +1,18 @@
-use std::{
-    collections::HashMap,
-    hash::{DefaultHasher, Hash, Hasher},
-    ops::Deref,
-    path::Path,
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
 use walkdir::WalkDir;
 
-use crate::{config::LibraryConfig, library::helper::is_rodio_supported, track::Track};
+use crate::{
+    config::LibraryConfig,
+    library::helper::is_rodio_supported,
+    track::{Track, track_id::TrackId},
+};
 
 pub mod helper;
 
 #[cfg(test)]
 pub mod tests;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, TS)]
-#[ts(export, export_to = "track_id.ts")]
-pub struct TrackId(pub u64);
-
-impl TrackId {
-    pub fn from_path(path: &Path) -> TrackId {
-        let mut h = DefaultHasher::new();
-        path.hash(&mut h);
-        TrackId(h.finish())
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub struct ParseTrackIdError;
-
-impl Deref for TrackId {
-    type Target = u64;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 #[derive(Default, Debug, Clone)]
 pub struct Library {
