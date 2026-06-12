@@ -5,12 +5,17 @@ use ami_core::{
     track::track_id::TrackId,
 };
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, TS)]
 #[serde(tag = "type", content = "data")]
+#[ts(export, export_to = "server_event.ts")]
 pub enum ServerEvent {
     SendLibrary(HashMap<TrackId, Track>),
     SendQueue(QueueSnapshot),
     SendPlayerSnapshot(PlayerSnapshot),
-    SendPlayerPosition(Duration),
+    SendPlayerPosition {
+        #[ts(type = "{ secs: number, nanos: number }")]
+        position: Duration,
+    },
 }

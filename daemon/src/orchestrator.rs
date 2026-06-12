@@ -251,7 +251,9 @@ impl Orchestrator {
         loop {
             interval.tick().await;
             if !player.is_paused() {
-                let event = ServerEvent::SendPlayerPosition(player.get_pos());
+                let event = ServerEvent::SendPlayerPosition {
+                    position: player.get_pos(),
+                };
                 let _ = connection_tx.send(serde_json::to_string(&event)?);
             }
         }

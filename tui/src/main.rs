@@ -153,8 +153,8 @@ async fn connect(
                                     states.lock().await.player_snapshot = snapshot;
                                 },
 
-                                ServerEvent::SendPlayerPosition(duration) => {
-                                    states.lock().await.player_snapshot.position = duration;
+                                ServerEvent::SendPlayerPosition{position} => {
+                                    states.lock().await.player_snapshot.position = position;
                                 }
                             }
                         }
