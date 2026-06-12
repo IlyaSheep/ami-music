@@ -39,11 +39,11 @@ pub async fn handle_playback_command(
 
         PlaybackCommand::TogglePlay => shared_state.read().await.toggle_play(mpris_server).await?,
 
-        PlaybackCommand::SetPosition(pos) => {
+        PlaybackCommand::SetPosition { position } => {
             shared_state
                 .read()
                 .await
-                .set_position(pos, mpris_server)
+                .set_position(position, mpris_server)
                 .await?
         }
 
