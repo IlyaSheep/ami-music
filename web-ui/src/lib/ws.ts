@@ -1,12 +1,16 @@
 import type { Command } from "../types/commands"
 import type { ServerEvent } from "../types/server_event"
-import { daemonState } from "./stores/daemon_states"
+import * as library from '$lib/commands/library';
+import { daemonState } from "./stores/daemon_states.svelte"
 
 let ws: WebSocket | null = null
 
 
 export function connect(url: string) {
   ws = new WebSocket(url)
+  ws.onopen = () => {
+    library.fetch()
+  }
   ws.onmessage = (e) => {
     const msg: ServerEvent = JSON.parse(e.data)
 
