@@ -29,6 +29,6 @@ export function connect(url: string) {
   }
 }
 
-export function send(msg: Command) {
-  ws?.send(JSON.stringify(msg))
+export function send(command: Command) {
+  ws?.send(JSON.stringify(command))
 }
