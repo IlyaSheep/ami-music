@@ -2,14 +2,19 @@ import type { Command } from "../types/commands"
 import type { ServerEvent } from "../types/server_event"
 import * as library from '$lib/commands/library';
 import { daemonState } from "./stores/daemon_states.svelte"
+import { writable } from "svelte/store";
 
 let ws: WebSocket | null = null
-
+export const connected = writable(false);
 
 export function connect(url: string) {
   ws = new WebSocket(url)
   ws.onopen = () => {
+    connected.set(true)
     library.fetch()
+  }
+  ws.onclose = () => {
+    connected.set(false)
   }
   ws.onmessage = (e) => {
     const msg: ServerEvent = JSON.parse(e.data)
