@@ -7,12 +7,22 @@
 	let style = $props();
 </script>
 
-<div class="flex-1 overflow-auto">
-	{#each Object.values(daemonState.library) as track}
-		<button class="track" onclick={() => queue.enqueue(track.id)}>
-			<span class="title">{track.metadata.title}</span>
-			<span class="artist">{track.metadata.artist ?? 'Unknown'}</span>
-			<span class="album">{track.metadata.album ?? 'Unknown'}</span>
-		</button>
-	{/each}
-</div>
+<table class="flex-1 overflow-auto">
+	<thead>
+		<tr class="bg-slate-200">
+			<th>Track</th>
+			<th>Artist</th>
+		</tr>
+	</thead>
+	<tbody>
+		{#each Object.values(daemonState.library) as track}
+			<tr
+				class="track cursor-pointer odd:bg-white even:bg-slate-200 hover:bg-black hover:text-white"
+				onclick={() => queue.enqueue(track.id)}
+			>
+				<td class="title">{track.metadata.title}</td>
+				<td class="artist">{track.metadata.artist ?? 'Unknown'}</td>
+			</tr>
+		{/each}
+	</tbody>
+</table>
