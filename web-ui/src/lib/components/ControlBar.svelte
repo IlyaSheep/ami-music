@@ -4,7 +4,7 @@
 	import * as library from '$lib/commands/library';
 </script>
 
-<div class="flex h-1/12 shrink-0 flex-row justify-normal space-x-5 border-t-2 px-5">
+<div class="flex h-1/12 shrink-0 flex-row justify-normal space-x-5 border-t-2 bg-black">
 	<button class="cursor-pointer text-white" onclick={playback.play} aria-label="Play"
 		><svg
 			xmlns="http://www.w3.org/2000/svg"
