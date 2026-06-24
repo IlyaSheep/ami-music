@@ -3,14 +3,15 @@
 	import ControlBar from '$lib/components/ControlBar.svelte';
 	import Host from '$lib/components/Host.svelte';
 	import { connected } from '$lib/ws';
+	import RightPanel from '$lib/components/RightPanel.svelte';
 </script>
 
 {#if $connected}
-	<div class="flex h-screen flex-col dark:bg-black dark:text-white">
-		<div class="flex shrink flex-row overflow-scroll dark:bg-black dark:text-white">
+	<div class="flex h-screen flex-col overflow-hidden dark:bg-black dark:text-white">
+		<div class="flex min-h-0 flex-1 flex-row dark:bg-black dark:text-white">
 			<div class="w-1/6 shrink-0"></div>
 			<Library></Library>
-			<div class="w-1/6 shrink-0"></div>
+			<RightPanel></RightPanel>
 		</div>
 
 		<ControlBar></ControlBar>

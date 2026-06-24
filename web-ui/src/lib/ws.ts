@@ -1,6 +1,7 @@
 import type { Command } from "../types/commands"
 import type { ServerEvent } from "../types/server_event"
 import * as library from '$lib/commands/library';
+import * as queue from '$lib/commands/queue';
 import { daemonState } from "./stores/daemon_states.svelte"
 import { writable } from "svelte/store";
 
@@ -12,6 +13,7 @@ export function connect(url: string) {
   ws.onopen = () => {
     connected.set(true)
     library.fetch()
+    queue.fetch()
   }
   ws.onclose = () => {
     connected.set(false)
